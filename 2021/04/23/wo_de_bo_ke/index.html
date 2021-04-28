@@ -3,7 +3,7 @@
 
 
 <head>
-    <meta charset="utf-8">
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
     <meta name="keywords" content="记一次 php 并发写入 顺序混乱的问题排查(上), 博客,技术博客">
     <meta name="description" content="记录开发的日常">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -30,14 +30,14 @@
     <script src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/jquery/jquery.min.js"></script>
 
 <meta name="generator" content="Hexo 5.4.0">
-<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style><!-- hexo-inject:begin --><!-- hexo-inject:end -->
 <link rel="stylesheet" href="/css/prism-tomorrow.css" type="text/css"></head>
 
 
 
 
 <body>
-    <header class="navbar-fixed">
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><header class="navbar-fixed">
     <nav id="headNav" class="bg-color nav-transparent">
         <div id="navContainer" class="nav-wrapper container">
             <div class="brand-logo">
@@ -480,14 +480,14 @@
                 
                 <div class="info-break-policy">
                     <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
-                    2.1k
+                    1.9k
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
-                    10 分
+                    9 分
                 </div>
                 
 
@@ -501,9 +501,6 @@
         </div>
         <hr class="clearfix">
 
-        
-        <!-- 是否加载使用自带的 prismjs. -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/prism/prism.css">
         
 
         
@@ -519,337 +516,314 @@
 <p>记一次 php  file_put_contents 并发写入  顺序混乱的问题排查</p>
 </blockquote>
 <h3 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h3><p>事情是这样的，本来用 spark 跑采集的客户端日志，结果报错如下:</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">WARN [main] DataSource: Found duplicate column(s) in the data schema and the partition schema:  `report_time`;
-Exception in thread "main" org.apache.spark.sql.AnalysisException: Found duplicate column(s) in the data schema: `report_time`;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash">WARN <span class="token punctuation">[</span>main<span class="token punctuation">]</span> DataSource: Found duplicate column<span class="token punctuation">(</span>s<span class="token punctuation">)</span> <span class="token keyword">in</span> the data schema and the partition schema:  <span class="token variable"><span class="token variable">`</span>report_time<span class="token variable">`</span></span><span class="token punctuation">;</span>
+Exception <span class="token keyword">in</span> thread <span class="token string">"main"</span> org.apache.spark.sql.AnalysisException: Found duplicate column<span class="token punctuation">(</span>s<span class="token punctuation">)</span> <span class="token keyword">in</span> the data schema: <span class="token variable"><span class="token variable">`</span>report_time<span class="token variable">`</span></span><span class="token punctuation">;</span>
+</code></pre>
 <h4 id="尝试搜索解决"><a href="#尝试搜索解决" class="headerlink" title="尝试搜索解决"></a>尝试搜索解决</h4><p>通过 搜索 大多数说法是日志中可能存在相同字段但是不同大小写的问题，只需要在代码中添加以下配置即可解决</p>
-<pre class="line-numbers language-scala" data-language="scala"><code class="language-scala">conf.set("spark.sql.caseSensitive", "true")<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-scala"><code class="language-scala">conf<span class="token punctuation">.</span>set<span class="token punctuation">(</span><span class="token string">"spark.sql.caseSensitive"</span><span class="token punctuation">,</span> <span class="token string">"true"</span><span class="token punctuation">)</span>
+</code></pre>
 <p>但是添加完之后，依然报相同错误，经过一番推测 可能是源日志 有问题，于是写了 以下脚本来校验每行 <code>json</code> 是否完整</p>
 <p>file: check.php</p>
-<pre class="line-numbers language-php" data-language="php"><code class="language-php">&lt;?php
-$file = "report.log";
-$fd = fopen($file,"r");
-$i=0;
-while(!feof($fd)){
-    $row = fgets($fd,65535);
-    $arr = json_decode($row,true);  // 如果有不完整的数据 或者解析 json 失败的数据 就打印
-    if(json_last_error()){
-        echo "==============start={$i}=============\n";
-        echo $row.PHP_EOL;
-        echo "==============end==={$i}===========\n";
-    }
-    $i++;
-}
-fclose($fd);<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-
+<pre class=" language-php"><code class="language-php"><span class="token delimiter">&lt;?php</span>
+<span class="token variable">$file</span> <span class="token operator">=</span> <span class="token string">"report.log"</span><span class="token punctuation">;</span>
+<span class="token variable">$fd</span> <span class="token operator">=</span> <span class="token function">fopen</span><span class="token punctuation">(</span><span class="token variable">$file</span><span class="token punctuation">,</span><span class="token string">"r"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token variable">$i</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token keyword">while</span><span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">feof</span><span class="token punctuation">(</span><span class="token variable">$fd</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token variable">$row</span> <span class="token operator">=</span> <span class="token function">fgets</span><span class="token punctuation">(</span><span class="token variable">$fd</span><span class="token punctuation">,</span><span class="token number">65535</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token variable">$arr</span> <span class="token operator">=</span> <span class="token function">json_decode</span><span class="token punctuation">(</span><span class="token variable">$row</span><span class="token punctuation">,</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">;</span>  <span class="token comment" spellcheck="true">// 如果有不完整的数据 或者解析 json 失败的数据 就打印</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">json_last_error</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+        <span class="token keyword">echo</span> <span class="token string">"==============start={$i}=============\n"</span><span class="token punctuation">;</span>
+        <span class="token keyword">echo</span> <span class="token variable">$row</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
+        <span class="token keyword">echo</span> <span class="token string">"==============end==={$i}===========\n"</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token variable">$i</span><span class="token operator">++</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+<span class="token function">fclose</span><span class="token punctuation">(</span><span class="token variable">$fd</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
 <p>得到输出如下:</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">....
-==============start=586487=============
-{...   省略若干无用信息
-"app_version":"1.0.ice_model":"V2049A",
- ...   省略若干无用信息
-}
+<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">..</span><span class="token punctuation">..</span>
+<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span>start<span class="token operator">=</span>586487<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">=</span>
+<span class="token punctuation">{</span><span class="token punctuation">..</span>.   省略若干无用信息
+<span class="token string">"app_version"</span><span class="token keyword">:</span><span class="token string">"1.0.ice_model"</span><span class="token keyword">:</span><span class="token string">"V2049A"</span>,
+ <span class="token punctuation">..</span>.   省略若干无用信息
+<span class="token punctuation">}</span>
 
-==============end===586487===========
-....<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span>end<span class="token operator">==</span><span class="token operator">=</span>586487<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">=</span>
+<span class="token punctuation">..</span><span class="token punctuation">..</span>
+</code></pre>
 <p>可以看到 存在 这样的数据，明显是 并发写入时  json 被截断</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">"app_version":"1.0.ice_model":"V2049A",<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash"><span class="token string">"app_version"</span><span class="token keyword">:</span><span class="token string">"1.0.ice_model"</span><span class="token keyword">:</span><span class="token string">"V2049A"</span>,
+</code></pre>
 <p>一看不合理啊 客户端日志上报 是用 <code>file_put_centents</code> 写入的， 已经添加了  <code>FILE_APPEND</code> 参数，此参数 对应 系统调用的  <code>write</code> <code>O_APPEND</code> 参数，记得在 <code>APUE</code> 中 写到 <code>write</code>  加上  <code>O_APPEND</code> 参数 就能保证写入数据是原子的，不会互相覆盖，但是目前现象是 写入的数据乱序了。</p>
 <h3 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h3><p>猜测可能是 并发写入时导致的，因此 通过 PHP <code>多进程 </code>并发写同一文件 测试来复现</p>
 <h4 id="使用多进程复现"><a href="#使用多进程复现" class="headerlink" title="使用多进程复现"></a>使用多进程复现</h4><p>file:  pcntl_chunk.php</p>
-<pre class="line-numbers language-php" data-language="php"><code class="language-php">$out = "out.log";
-$content = "record\n";
+<pre class=" language-php"><code class="language-php"><span class="token variable">$out</span> <span class="token operator">=</span> <span class="token string">"out.log"</span><span class="token punctuation">;</span>
+<span class="token variable">$content</span> <span class="token operator">=</span> <span class="token string">"record\n"</span><span class="token punctuation">;</span>
 
-for ( $i = 1; $i &lt;= 200; $i++ ) {
-    $pid = pcntl_fork();
-    if ( 0 == $pid ) {
-        for ($c = 1; $c &lt;= 10; $c++ ) {
-            file_put_contents($out, $content, FILE_APPEND);
-        }
-        exit;
-    }
-    sleep(3);
-    exit;
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ wc -l out.log
-2000 out.log<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
+<span class="token keyword">for</span> <span class="token punctuation">(</span> <span class="token variable">$i</span> <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span> <span class="token variable">$i</span> <span class="token operator">&lt;=</span> <span class="token number">200</span><span class="token punctuation">;</span> <span class="token variable">$i</span><span class="token operator">++</span> <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token variable">$pid</span> <span class="token operator">=</span> <span class="token function">pcntl_fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span> <span class="token number">0</span> <span class="token operator">==</span> <span class="token variable">$pid</span> <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token variable">$c</span> <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span> <span class="token variable">$c</span> <span class="token operator">&lt;=</span> <span class="token number">10</span><span class="token punctuation">;</span> <span class="token variable">$c</span><span class="token operator">++</span> <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token function">file_put_contents</span><span class="token punctuation">(</span><span class="token variable">$out</span><span class="token punctuation">,</span> <span class="token variable">$content</span><span class="token punctuation">,</span> <span class="token constant">FILE_APPEND</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        exit<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    exit<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<pre class=" language-bash"><code class="language-bash">$ <span class="token function">wc</span> -l out.log
+2000 out.log
+</code></pre>
 <p>正常 应该输出 2000 行，多次测试 均无异常，但是线上收集客户端写入的日志里确实存在被截断的情况</p>
 <p>干脆直接 通过  <code>strace</code> 命令，追踪 收集上报日志的  php-fpm 进程</p>
 <p>假设  1234  为某个  php-fpm 进程 id</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ strace  -p   1234<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash">$ <span class="token function">strace</span>  -p   1234
+</code></pre>
 <p>可以看到以下输出</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">...  省略若干无用信息
+<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">..</span>.  省略若干无用信息
 
        
-open("/data/collect/zyj/2021/04/21", O_WRONLY|O_CREAT|O_APPEND, 0666) = 5
-fstat(5, {st_mode=S_IFREG|0644, st_size=4360482272, ...}) = 0
-lseek(5, 0, SEEK_CUR)                   = 0
-lseek(5, 0, SEEK_CUR)                   = 0
-write(5, "{\"type\":\"up\",\"time\":\"2021-0"..., 8192) = 8192   # 可以看到这里  写入的日志 超过 8192 被分批写入
-write(5, "755e18a\",\"ip\":\"127.0.0.0\",\""..., 7263) = 7263    # 这里写入余下的数据
-close(5)                                = 0
-write(4, "\1\6\0\1\0T\4\0X-Powered-By: PHP/7.2.27"..., 112) = 112
-shutdown(4, SHUT_WR)                    = 0
-recvfrom(4, "\1\5\0\1\0\0\0\0", 8, 0, NULL, NULL) = 8
-recvfrom(4, "", 8, 0, NULL, NULL)       = 0
-close(4)
+open<span class="token punctuation">(</span><span class="token string">"/data/collect/zyj/2021/04/21"</span>, O_WRONLY<span class="token operator">|</span>O_CREAT<span class="token operator">|</span>O_APPEND, 0666<span class="token punctuation">)</span> <span class="token operator">=</span> 5
+fstat<span class="token punctuation">(</span>5, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFREG<span class="token operator">|</span>0644, st_size<span class="token operator">=</span>4360482272, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
+lseek<span class="token punctuation">(</span>5, 0, SEEK_CUR<span class="token punctuation">)</span>                   <span class="token operator">=</span> 0
+lseek<span class="token punctuation">(</span>5, 0, SEEK_CUR<span class="token punctuation">)</span>                   <span class="token operator">=</span> 0
+write<span class="token punctuation">(</span>5, <span class="token string">"{\"type\":\"up\",\"time\":\"2021-0"</span><span class="token punctuation">..</span>., 8192<span class="token punctuation">)</span> <span class="token operator">=</span> 8192   <span class="token comment" spellcheck="true"># 可以看到这里  写入的日志 超过 8192 被分批写入</span>
+write<span class="token punctuation">(</span>5, <span class="token string">"755e18a\",\"ip\":\"127.0.0.0\",\""</span><span class="token punctuation">..</span>., 7263<span class="token punctuation">)</span> <span class="token operator">=</span> 7263    <span class="token comment" spellcheck="true"># 这里写入余下的数据</span>
+close<span class="token punctuation">(</span>5<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+write<span class="token punctuation">(</span>4, <span class="token string">"\1\6\0\1\0T\4\0X-Powered-By: PHP/7.2.27"</span><span class="token punctuation">..</span>., 112<span class="token punctuation">)</span> <span class="token operator">=</span> 112
+shutdown<span class="token punctuation">(</span>4, SHUT_WR<span class="token punctuation">)</span>                    <span class="token operator">=</span> 0
+recvfrom<span class="token punctuation">(</span>4, <span class="token string">"\1\5\0\1\0\0\0\0"</span>, 8, 0, NULL, NULL<span class="token punctuation">)</span> <span class="token operator">=</span> 8
+recvfrom<span class="token punctuation">(</span>4, <span class="token string">""</span>, 8, 0, NULL, NULL<span class="token punctuation">)</span>       <span class="token operator">=</span> 0
+close<span class="token punctuation">(</span>4<span class="token punctuation">)</span>
 
-...  省略若干无用信息<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<span class="token punctuation">..</span>.  省略若干无用信息
+</code></pre>
 <p>仔细看上面注释，存在系统调用 <code>write</code> 文件时 长度大于 <code>8192</code> 也就是 8k  分批写入的情况，因此推测 刚刚复现的脚本中写入的数据长度不够，所以没有成功复现<br>我们加大 写入内容的长度，再次用 <code>strace</code> 观察 在系统调用 <code>write</code> 时是否是分批写入</p>
 <p>file:chunk.php</p>
-<pre class="line-numbers language-php" data-language="php"><code class="language-php">&lt;?php
-$data = [
-    "type"=&gt;"report",
-    "time"=&gt;time(),
-    "data"=&gt;[],
-];
+<pre class=" language-php"><code class="language-php"><span class="token delimiter">&lt;?php</span>
+<span class="token variable">$data</span> <span class="token operator">=</span> <span class="token punctuation">[</span>
+    <span class="token string">"type"</span><span class="token operator">=</span><span class="token operator">></span><span class="token string">"report"</span><span class="token punctuation">,</span>
+    <span class="token string">"time"</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">time</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token string">"data"</span><span class="token operator">=</span><span class="token operator">></span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+<span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-for($i=0;$i&lt;2000;$i++){
-    $data["data"][] = ["abc".$i=&gt;rand(100,999)];
-}
+<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">&lt;</span><span class="token number">2000</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token variable">$data</span><span class="token punctuation">[</span><span class="token string">"data"</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">"abc"</span><span class="token punctuation">.</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">rand</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span><span class="token number">999</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
 
-$content = json_encode($data).PHP_EOL;
-echo strlen($content).PHP_EOL;
+<span class="token variable">$content</span> <span class="token operator">=</span> <span class="token function">json_encode</span><span class="token punctuation">(</span><span class="token variable">$data</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
+<span class="token keyword">echo</span> <span class="token function">strlen</span><span class="token punctuation">(</span><span class="token variable">$content</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
 
-$out = "out.log";
-file_put_contents($out, $content, FILE_APPEND);<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<span class="token variable">$out</span> <span class="token operator">=</span> <span class="token string">"out.log"</span><span class="token punctuation">;</span>
+<span class="token function">file_put_contents</span><span class="token punctuation">(</span><span class="token variable">$out</span><span class="token punctuation">,</span> <span class="token variable">$content</span><span class="token punctuation">,</span> <span class="token constant">FILE_APPEND</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
 <p>写入数据 长度为 30935 字节</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"># php chunk.php
-30935<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># php chunk.php</span>
+30935
+</code></pre>
 <p>用 strace 执行可以看到如下输出</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">strace php chunk.php<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<pre class=" language-bash"><code class="language-bash"><span class="token function">strace</span> php chunk.php
+</code></pre>
+<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">..</span>. <span class="token punctuation">..</span>. 省去无用信息
 
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">... ... 省去无用信息
-
-lstat("/root/test/out.log", {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0
-open("/root/test/out.log", O_WRONLY|O_CREAT|O_APPEND, 0666) = 3
-fstat(3, {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-write(3, "{\"type\":\"report\",\"time\":16191055"..., 8192) = 8192
-write(3, ":359},{\"abc551\":207},{\"abc552\":5"..., 8192) = 8192
-write(3, "225},{\"abc1091\":544},{\"abc1092\":"..., 8192) = 8192
-write(3, "266},{\"abc1603\":422},{\"abc1604\":"..., 6359) = 6359
-close(3)                                = 0
-close(2)                                = 0
-close(1)                                = 0
-close(0)                                = 0
-... ... 省去无用信息<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+lstat<span class="token punctuation">(</span><span class="token string">"/root/test/out.log"</span>, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFREG<span class="token operator">|</span>0644, st_size<span class="token operator">=</span>12712298, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
+open<span class="token punctuation">(</span><span class="token string">"/root/test/out.log"</span>, O_WRONLY<span class="token operator">|</span>O_CREAT<span class="token operator">|</span>O_APPEND, 0666<span class="token punctuation">)</span> <span class="token operator">=</span> 3
+fstat<span class="token punctuation">(</span>3, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFREG<span class="token operator">|</span>0644, st_size<span class="token operator">=</span>12712298, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
+lseek<span class="token punctuation">(</span>3, 0, SEEK_CUR<span class="token punctuation">)</span>                   <span class="token operator">=</span> 0
+lseek<span class="token punctuation">(</span>3, 0, SEEK_CUR<span class="token punctuation">)</span>                   <span class="token operator">=</span> 0
+write<span class="token punctuation">(</span>3, <span class="token string">"{\"type\":\"report\",\"time\":16191055"</span><span class="token punctuation">..</span>., 8192<span class="token punctuation">)</span> <span class="token operator">=</span> 8192
+write<span class="token punctuation">(</span>3, <span class="token string">":359},{\"abc551\":207},{\"abc552\":5"</span><span class="token punctuation">..</span>., 8192<span class="token punctuation">)</span> <span class="token operator">=</span> 8192
+write<span class="token punctuation">(</span>3, <span class="token string">"225},{\"abc1091\":544},{\"abc1092\":"</span><span class="token punctuation">..</span>., 8192<span class="token punctuation">)</span> <span class="token operator">=</span> 8192
+write<span class="token punctuation">(</span>3, <span class="token string">"266},{\"abc1603\":422},{\"abc1604\":"</span><span class="token punctuation">..</span>., 6359<span class="token punctuation">)</span> <span class="token operator">=</span> 6359
+close<span class="token punctuation">(</span>3<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+close<span class="token punctuation">(</span>2<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+close<span class="token punctuation">(</span>1<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+close<span class="token punctuation">(</span>0<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+<span class="token punctuation">..</span>. <span class="token punctuation">..</span>. 省去无用信息
+</code></pre>
 <p>可以看到  写入数据 分了五次  8192*3 + 6359 = 30935 刚好是我们写入的长度。</p>
 <h3 id="再次复现"><a href="#再次复现" class="headerlink" title="再次复现"></a>再次复现</h3><p>用 多进程 加大写入数据长度 并发 写入 out.log 文件</p>
 <p>file : pcntl_fork.php</p>
-<pre class="line-numbers language-php" data-language="php"><code class="language-php">$data = [
-    "type"=&gt;"report",
-    "time"=&gt;time(),
-    "data"=&gt;[],
-];
+<pre class=" language-php"><code class="language-php"><span class="token variable">$data</span> <span class="token operator">=</span> <span class="token punctuation">[</span>
+    <span class="token string">"type"</span><span class="token operator">=</span><span class="token operator">></span><span class="token string">"report"</span><span class="token punctuation">,</span>
+    <span class="token string">"time"</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">time</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token string">"data"</span><span class="token operator">=</span><span class="token operator">></span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+<span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-for($i=0;$i&lt;2000;$i++){
-    $data["data"][] = ["abc".$i=&gt;rand(100,999)];
-}
+<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">&lt;</span><span class="token number">2000</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token variable">$data</span><span class="token punctuation">[</span><span class="token string">"data"</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">"abc"</span><span class="token punctuation">.</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">rand</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span><span class="token number">999</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
 
-$content = json_encode($data).PHP_EOL;
+<span class="token variable">$content</span> <span class="token operator">=</span> <span class="token function">json_encode</span><span class="token punctuation">(</span><span class="token variable">$data</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
 
-for ( $i = 0; $i &lt; 20; $i++ ) {
-    $pid = pcntl_fork();
-    if ( 0 == $pid ) {
-        for ($c = 0; $c &lt; 10; $c++) {
-            $out = "out.log";
-            file_put_contents($out, $content, FILE_APPEND);
-        }
-        exit;
-    }
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<span class="token keyword">for</span> <span class="token punctuation">(</span> <span class="token variable">$i</span> <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> <span class="token variable">$i</span> <span class="token operator">&lt;</span> <span class="token number">20</span><span class="token punctuation">;</span> <span class="token variable">$i</span><span class="token operator">++</span> <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token variable">$pid</span> <span class="token operator">=</span> <span class="token function">pcntl_fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span> <span class="token number">0</span> <span class="token operator">==</span> <span class="token variable">$pid</span> <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token variable">$c</span> <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> <span class="token variable">$c</span> <span class="token operator">&lt;</span> <span class="token number">10</span><span class="token punctuation">;</span> <span class="token variable">$c</span><span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token variable">$out</span> <span class="token operator">=</span> <span class="token string">"out.log"</span><span class="token punctuation">;</span>
+            <span class="token function">file_put_contents</span><span class="token punctuation">(</span><span class="token variable">$out</span><span class="token punctuation">,</span> <span class="token variable">$content</span><span class="token punctuation">,</span> <span class="token constant">FILE_APPEND</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        exit<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
 <p>执行  </p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">php  pcntl_fork.php<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash">php  pcntl_fork.php
+</code></pre>
 <p>用  check.php  检查 输出 out.log 输出 发现有以下内容</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">==============start=94=============
-abc293":823},{"abc294":539},{"abc29
-...
-==============end===94===========<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash"><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span>start<span class="token operator">=</span>94<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">=</span>
+abc293<span class="token string">":823},{"</span>abc294<span class="token string">":539},{"</span>abc29
+<span class="token punctuation">..</span>.
+<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span>end<span class="token operator">==</span><span class="token operator">=</span>94<span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">==</span><span class="token operator">=</span>
+</code></pre>
 <p>由此问题复现，可以得出结论，file_put_contents 时 如果只加 FILE_APPEND 参数，那么 写入长度 不大于 8k 时是原子写入，如果大于 8k 就不是原子，并发写入存在乱序的可能， 此时如果要杜绝这种情况 需要添加 LOCK_EX 参数。</p>
 <p>一般情况 到这里就结束了，但是本着 刨根问底的思想，我们要一探究竟，为什么？ PHP 什么会出现这种情况，是内部 file_put_contents 实现的原因吗？  此时我们要到源码一探究竟</p>
-<h3 id="查看源码-过程"><a href="#查看源码-过程" class="headerlink" title="查看源码 过程"></a>查看源码 过程</h3><h4 id="1-下载源码"><a href="#1-下载源码" class="headerlink" title="1. 下载源码"></a>1. 下载源码</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">wget https://github.com/php/php-src/archive/refs/tags/php-7.4.18RC1.tar.gz
+<h3 id="查看源码-过程"><a href="#查看源码-过程" class="headerlink" title="查看源码 过程"></a>查看源码 过程</h3><h4 id="1-下载源码"><a href="#1-下载源码" class="headerlink" title="1. 下载源码"></a>1. 下载源码</h4><pre class=" language-bash"><code class="language-bash"><span class="token function">wget</span> https://github.com/php/php-src/archive/refs/tags/php-7.4.18RC1.tar.gz
 
-tar xf php-7.4.18RC1.tar.gz
+<span class="token function">tar</span> xf php-7.4.18RC1.tar.gz
 
-cd php-7.4.18RC1<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<span class="token function">cd</span> php-7.4.18RC1
+</code></pre>
 <h4 id="2-先找到-file-put-contents-定义"><a href="#2-先找到-file-put-contents-定义" class="headerlink" title="2. 先找到 file_put_contents 定义"></a>2. 先找到 file_put_contents 定义</h4><p>file : ext/standard/file.c</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">PHP_FUNCTION(file_put_contents)
-{
-	php_stream *stream;
-	
+<pre class=" language-c"><code class="language-c"><span class="token function">PHP_FUNCTION</span><span class="token punctuation">(</span>file_put_contents<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    php_stream <span class="token operator">*</span>stream<span class="token punctuation">;</span>
+    
 
-.....  省去无关代码
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>  省去无关代码
 
-		case IS_STRING:
-			if (Z_STRLEN_P(data)) {
-                // ======================= ！！！ 主要看这里  !!! =================
-                // ==========  file_put_contents 中 写入主要是 php_stream_write ==
-				numbytes = php_stream_write(stream, Z_STRVAL_P(data), Z_STRLEN_P(data));
-                // ======================= ！！！ 主要看这里  !!! =================
-				if (numbytes != Z_STRLEN_P(data)) {
-					php_error_docref(NULL, E_WARNING, "Only %zd of %zd bytes written, possibly out of free disk space", numbytes, Z_STRLEN_P(data));
-					numbytes = -1;
-				}
-			}
-			break;
+        <span class="token keyword">case</span> IS_STRING<span class="token punctuation">:</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">Z_STRLEN_P</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token comment" spellcheck="true">// ======================= ！！！ 主要看这里  !!! =================</span>
+                <span class="token comment" spellcheck="true">// ==========  file_put_contents 中 写入主要是 php_stream_write ==</span>
+                numbytes <span class="token operator">=</span> <span class="token function">php_stream_write</span><span class="token punctuation">(</span>stream<span class="token punctuation">,</span> <span class="token function">Z_STRVAL_P</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token function">Z_STRLEN_P</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+                <span class="token comment" spellcheck="true">// ======================= ！！！ 主要看这里  !!! =================</span>
+                <span class="token keyword">if</span> <span class="token punctuation">(</span>numbytes <span class="token operator">!=</span> <span class="token function">Z_STRLEN_P</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                    <span class="token function">php_error_docref</span><span class="token punctuation">(</span><span class="token constant">NULL</span><span class="token punctuation">,</span> E_WARNING<span class="token punctuation">,</span> <span class="token string">"Only %zd of %zd bytes written, possibly out of free disk space"</span><span class="token punctuation">,</span> numbytes<span class="token punctuation">,</span> <span class="token function">Z_STRLEN_P</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+                    numbytes <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+                <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span>
+            <span class="token keyword">break</span><span class="token punctuation">;</span>
 
-......  省去无关代码 
-	php_stream_close(stream);
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>  省去无关代码 
+    <span class="token function">php_stream_close</span><span class="token punctuation">(</span>stream<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-	if (numbytes &lt; 0) {
-		RETURN_FALSE;
-	}
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>numbytes <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        RETURN_FALSE<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+</code></pre>
 <h4 id="3-查看-php-stream-write-定义"><a href="#3-查看-php-stream-write-定义" class="headerlink" title="3. 查看  php_stream_write 定义"></a>3. 查看  php_stream_write 定义</h4><p>file : main/php_streams.h</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">#define php_stream_write(stream, buf, count)    _php_stream_write(stream, (buf), (count))<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-c"><code class="language-c"><span class="token macro property">#<span class="token directive keyword">define</span> php_stream_write(stream, buf, count)    _php_stream_write(stream, (buf), (count))</span>
+</code></pre>
 <h4 id="4-查看-php-stream-实现"><a href="#4-查看-php-stream-实现" class="headerlink" title="4. 查看 php_stream 实现"></a>4. 查看 php_stream 实现</h4><p>file: main/streams/streams.c</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">PHPAPI ssize_t _php_stream_write(php_stream *stream, const char *buf, size_t count)
-{
-    ssize_t bytes;
+<pre class=" language-c"><code class="language-c">PHPAPI ssize_t <span class="token function">_php_stream_write</span><span class="token punctuation">(</span>php_stream <span class="token operator">*</span>stream<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>buf<span class="token punctuation">,</span> size_t count<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    ssize_t bytes<span class="token punctuation">;</span>
 
-    if (count == 0) {
-        return 0;                                                                                        }
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>count <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>                                                                                        <span class="token punctuation">}</span>
 
-    ZEND_ASSERT(buf != NULL);
-    if (stream-&gt;ops-&gt;write == NULL) {
-        php_error_docref(NULL, E_NOTICE, "Stream is not writable");
-        return (ssize_t) -1;
-    }
+    <span class="token function">ZEND_ASSERT</span><span class="token punctuation">(</span>buf <span class="token operator">!=</span> <span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>stream<span class="token operator">-></span>ops<span class="token operator">-></span>write <span class="token operator">==</span> <span class="token constant">NULL</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token function">php_error_docref</span><span class="token punctuation">(</span><span class="token constant">NULL</span><span class="token punctuation">,</span> E_NOTICE<span class="token punctuation">,</span> <span class="token string">"Stream is not writable"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token punctuation">(</span>ssize_t<span class="token punctuation">)</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
 
-    if (stream-&gt;writefilters.head) {                                                                         bytes = 		 _php_stream_write_filtered(stream, buf, count, PSFS_FLAG_NORMAL);
-    } else {
-          // ==========  这里 又跳到   _php_stream_write_buffer 函数
-        bytes = _php_stream_write_buffer(stream, buf, count);
-    }
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>stream<span class="token operator">-></span>writefilters<span class="token punctuation">.</span>head<span class="token punctuation">)</span> <span class="token punctuation">{</span>                                                                         bytes <span class="token operator">=</span>          <span class="token function">_php_stream_write_filtered</span><span class="token punctuation">(</span>stream<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> count<span class="token punctuation">,</span> PSFS_FLAG_NORMAL<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+          <span class="token comment" spellcheck="true">// ==========  这里 又跳到   _php_stream_write_buffer 函数</span>
+        bytes <span class="token operator">=</span> <span class="token function">_php_stream_write_buffer</span><span class="token punctuation">(</span>stream<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> count<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
 
-    if (bytes) {
-        stream-&gt;flags |= PHP_STREAM_FLAG_WAS_WRITTEN;
-    }
-                                                                                                         return bytes;
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>bytes<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        stream<span class="token operator">-></span>flags <span class="token operator">|</span><span class="token operator">=</span> PHP_STREAM_FLAG_WAS_WRITTEN<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+                                                                                                         <span class="token keyword">return</span> bytes<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
 <h4 id="5-继续-看-php-stream-write-buffer-函数实现"><a href="#5-继续-看-php-stream-write-buffer-函数实现" class="headerlink" title="5. 继续 看 _php_stream_write_buffer 函数实现"></a>5. 继续 看 _php_stream_write_buffer 函数实现</h4><p>file : main/streams/streams.c</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">/* Writes a buffer directly to a stream, using multiple of the chunk size */
-static ssize_t _php_stream_write_buffer(php_stream *stream, const char *buf, size_t count)
-{
-    ssize_t didwrite = 0, justwrote;
+<pre class=" language-c"><code class="language-c"><span class="token comment" spellcheck="true">/* Writes a buffer directly to a stream, using multiple of the chunk size */</span>
+<span class="token keyword">static</span> ssize_t <span class="token function">_php_stream_write_buffer</span><span class="token punctuation">(</span>php_stream <span class="token operator">*</span>stream<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>buf<span class="token punctuation">,</span> size_t count<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    ssize_t didwrite <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> justwrote<span class="token punctuation">;</span>
                                                                                                         
-...  省略无关代码
-    while (count &gt; 0) {
-        size_t towrite = count;
-        // ==================== !!!! 看这里  chunk_size 超过 chunk_size 会被截断 ================
-        if (towrite &gt; stream-&gt;chunk_size)
-            towrite = stream-&gt;chunk_size;
-        // ====================== chunk_size ===================
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>  省略无关代码
+    <span class="token keyword">while</span> <span class="token punctuation">(</span>count <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        size_t towrite <span class="token operator">=</span> count<span class="token punctuation">;</span>
+        <span class="token comment" spellcheck="true">// ==================== !!!! 看这里  chunk_size 超过 chunk_size 会被截断 ================</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>towrite <span class="token operator">></span> stream<span class="token operator">-></span>chunk_size<span class="token punctuation">)</span>
+            towrite <span class="token operator">=</span> stream<span class="token operator">-></span>chunk_size<span class="token punctuation">;</span>
+        <span class="token comment" spellcheck="true">// ====================== chunk_size ===================</span>
 
-        justwrote = stream-&gt;ops-&gt;write(stream, buf, towrite);
-        if (justwrote &lt;= 0) {                                                                                    /* If we already successfully wrote some bytes and a write error occurred
-             * later, report the successfully written bytes. */
-            if (didwrite == 0) {
-                return justwrote;
-            }
-            return didwrite;
-        }
+        justwrote <span class="token operator">=</span> stream<span class="token operator">-></span>ops<span class="token operator">-></span><span class="token function">write</span><span class="token punctuation">(</span>stream<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> towrite<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>justwrote <span class="token operator">&lt;=</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>                                                                                    <span class="token comment" spellcheck="true">/* If we already successfully wrote some bytes and a write error occurred
+             * later, report the successfully written bytes. */</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span>didwrite <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token keyword">return</span> justwrote<span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+            <span class="token keyword">return</span> didwrite<span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
 
-... 省略无关代码     
-    }
+<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> 省略无关代码     
+    <span class="token punctuation">}</span>
 
-    return didwrite;
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+    <span class="token keyword">return</span> didwrite<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
 <h4 id="6-查看-chunk-size-大小"><a href="#6-查看-chunk-size-大小" class="headerlink" title="6. 查看  chunk_size 大小"></a>6. 查看  chunk_size 大小</h4><p>在  php_stream 定义</p>
 <p>file:   main/php_streams.h</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">typedef struct _php_stream php_stream;<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
+<pre class=" language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">struct</span> _php_stream php_stream<span class="token punctuation">;</span>
+</code></pre>
 <p>file:  main/php_streams.h</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">struct _php_stream  {
-    ...
+<pre class=" language-c"><code class="language-c"><span class="token keyword">struct</span> _php_stream  <span class="token punctuation">{</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
 
-    /* how much data to read when filling buffer */
-    size_t chunk_size;
+    <span class="token comment" spellcheck="true">/* how much data to read when filling buffer */</span>
+    size_t chunk_size<span class="token punctuation">;</span>
     
-    ...   
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>   
+<span class="token punctuation">}</span>
+</code></pre>
 <p>我们 看到 chunk_size 大小 由  size_t  决定，根据 系统实现 在 64 位系统中为 8k 长度即为 8192 , 这就可以看到 file_put_contents 如果大于 8k 就不是一个系统调用了， 因此不是原子的，不加锁的情况 会乱序。</p>
 <p>那么为什么 file_put_contents 要限制 写入 大小超过 size_t 要分批呢，是PHP 独有的还是 其它语言也有这个问题  ?</p>
 <h3 id="其它语言是否有这个问题？"><a href="#其它语言是否有这个问题？" class="headerlink" title="其它语言是否有这个问题？"></a>其它语言是否有这个问题？</h3><p>我们接着以  C 语言查看是否有同样现象</p>
 <p>file : write.c</p>
-<pre class="line-numbers language-c" data-language="c"><code class="language-c">#include &lt;stdio.h&gt;
-#include &lt;string.h&gt;
+<pre class=" language-c"><code class="language-c"><span class="token macro property">#<span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h></span></span>
+<span class="token macro property">#<span class="token directive keyword">include</span> <span class="token string">&lt;string.h></span></span>
 
-int main()
-{
-   FILE *fp = NULL;
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+   FILE <span class="token operator">*</span>fp <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
 
-   char buff[10000];
-   int i;
+   <span class="token keyword">char</span> buff<span class="token punctuation">[</span><span class="token number">10000</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+   <span class="token keyword">int</span> i<span class="token punctuation">;</span>
 
-   for(i=0;i&lt;2000;i++){
-       strcat(buff, "abcdef\n");
-   }
+   <span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span><span class="token number">2000</span><span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       <span class="token function">strcat</span><span class="token punctuation">(</span>buff<span class="token punctuation">,</span> <span class="token string">"abcdef\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token punctuation">}</span>
 
-   fp = fopen("c_out.log", O_CREAT|O_APPEND);
-   fputs(buff, fp);
-   fclose(fp);
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+   fp <span class="token operator">=</span> <span class="token function">fopen</span><span class="token punctuation">(</span><span class="token string">"c_out.log"</span><span class="token punctuation">,</span> O_CREAT<span class="token operator">|</span>O_APPEND<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token function">fputs</span><span class="token punctuation">(</span>buff<span class="token punctuation">,</span> fp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token function">fclose</span><span class="token punctuation">(</span>fp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
 <p>编译执行</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">cc  write.c  -o write
-strace write<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
-
-
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">open("c_out.log", O_RDWR|O_CREAT|O_TRUNC, 0666) = 3
-fstat(3, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
-mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f5b4d4b2000
-write(3, "abcdef\nabcdef\nabcdef\nabcdef\nabcd"..., 8192) = 8192
-write(3, "cdef\nabcdef\nabcdef\nabcdef\nabcdef"..., 1812) = 1812
-close(3)                                = 0
-munmap(0x7f5b4d4b2000, 4096)            = 0
-exit_group(0)                           = ?
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
+<pre class=" language-bash"><code class="language-bash">cc  write.c  -o <span class="token function">write</span>
+<span class="token function">strace</span> <span class="token function">write</span>
+</code></pre>
+<pre class=" language-bash"><code class="language-bash">open<span class="token punctuation">(</span><span class="token string">"c_out.log"</span>, O_RDWR<span class="token operator">|</span>O_CREAT<span class="token operator">|</span>O_TRUNC, 0666<span class="token punctuation">)</span> <span class="token operator">=</span> 3
+fstat<span class="token punctuation">(</span>3, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFREG<span class="token operator">|</span>0644, st_size<span class="token operator">=</span>0, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
+mmap<span class="token punctuation">(</span>NULL, 4096, PROT_READ<span class="token operator">|</span>PROT_WRITE, MAP_PRIVATE<span class="token operator">|</span>MAP_ANONYMOUS, -1, 0<span class="token punctuation">)</span> <span class="token operator">=</span> 0x7f5b4d4b2000
+write<span class="token punctuation">(</span>3, <span class="token string">"abcdef\nabcdef\nabcdef\nabcdef\nabcd"</span><span class="token punctuation">..</span>., 8192<span class="token punctuation">)</span> <span class="token operator">=</span> 8192
+write<span class="token punctuation">(</span>3, <span class="token string">"cdef\nabcdef\nabcdef\nabcdef\nabcdef"</span><span class="token punctuation">..</span>., 1812<span class="token punctuation">)</span> <span class="token operator">=</span> 1812
+close<span class="token punctuation">(</span>3<span class="token punctuation">)</span>                                <span class="token operator">=</span> 0
+munmap<span class="token punctuation">(</span>0x7f5b4d4b2000, 4096<span class="token punctuation">)</span>            <span class="token operator">=</span> 0
+exit_group<span class="token punctuation">(</span>0<span class="token punctuation">)</span>                           <span class="token operator">=</span> ?
+</code></pre>
 <p>可以看到 C 语言中 <code>write</code>  超过 8k 也会拆分，看来不是 php 独有的问题，是系统的问题。</p>
 <p>为什么系统调用 <code>wirte</code> 时 超过 8k 就会不是原子操作， 这个问题我们下篇文章继续探讨。</p>
-<pre class="line-numbers language-json" data-language="json"><code class="language-json">{ "name": "hexo-site", "version": "0.0.0", "private": true, "scripts": { "build": "hexo generate", "clean": "hexo clean", "deploy": "hexo deploy", "server": "hexo server" }, "hexo": { "version": "5.3.0" }, "dependencies": { "hexo": "^5.3.0", "hexo-deployer-git": "^2.1.0", "hexo-filter-github-emojis": "^3.0.4", "hexo-filter-mermaid-diagrams": "^1.0.5", "hexo-generator-archive": "^1.0.0", "hexo-generator-baidu-sitemap": "^0.1.9", "hexo-generator-category": "^1.0.0", "hexo-generator-index": "^2.0.0", "hexo-generator-search": "^2.4.1", "hexo-generator-sitemap": "^2.1.0", "hexo-generator-tag": "^1.0.0", "hexo-permalink-pinyin": "^1.1.0", "hexo-renderer-ejs": "^1.0.0", "hexo-renderer-marked": "^3.0.0", "hexo-renderer-stylus": "^2.0.0", "hexo-server": "^2.0.0", "hexo-wordcount": "^6.0.1" } }<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
-<pre class="line-numbers language-cpp" data-language="cpp"><code class="language-cpp">template &lt; int n &gt; struct Sum {
-    enum Value {
-        N = Sum &lt; n - 1 &gt; ::N + n
-    };
-};
-template &lt; &gt; struct Sum &lt; 1 &gt; {
-    enum Value {
-        N = 1
-    };
-};
-int main() {
-    cout &lt;&lt; Sum &lt; 100 &gt; ::N;
-    return 0;
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
                 
             </div>
             <hr/>
@@ -1441,7 +1415,7 @@ int main() {
             <br>
             
             &nbsp;<i class="fas fa-chart-area"></i>&nbsp;站点总字数:&nbsp;<span
-                class="white-color">2.1k</span>&nbsp;字
+                class="white-color">1.9k</span>&nbsp;字
             
             
             
@@ -1657,7 +1631,7 @@ $(function () {
     
 
     
-    <script src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/instantpage/instantpage.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/instantpage/instantpage.js" type="module"></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
     
 
 </body>
