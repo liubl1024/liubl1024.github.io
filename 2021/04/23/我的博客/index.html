@@ -432,7 +432,7 @@
                     <div class="article-tag">
                         
                             <a href="/tags/PHP-Linux-IO/">
-                                <span class="chip bg-color">PHP Linux IO</span>
+                                <span class="chip bg-color">PHP,Linux,IO</span>
                             </a>
                         
                     </div>
@@ -472,7 +472,7 @@
 <p>记一次 php  file_put_contents 并发写入  顺序混乱的问题排查</p>
 </blockquote>
 <h3 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h3><p>事情是这样的，本来用 spark 跑采集的客户端日志，结果报错如下:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">WARN [main] DataSource: Found duplicate column(s) in the data schema and the partition schema:  &#96;report_time&#96;;</span><br><span class="line">Exception in thread &quot;main&quot; org.apache.spark.sql.AnalysisException: Found duplicate column(s) in the data schema: &#96;report_time&#96;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">WARN [main] DataSource: Found duplicate column(s) <span class="keyword">in</span> the data schema and the partition schema:  `report_time`;</span><br><span class="line">Exception <span class="keyword">in</span> thread <span class="string">&quot;main&quot;</span> org.apache.spark.sql.AnalysisException: Found duplicate column(s) <span class="keyword">in</span> the data schema: `report_time`;</span><br></pre></td></tr></table></figure>
 
 <h4 id="尝试搜索解决"><a href="#尝试搜索解决" class="headerlink" title="尝试搜索解决"></a>尝试搜索解决</h4><p>通过 搜索 大多数说法是日志中可能存在相同字段但是不同大小写的问题，只需要在代码中添加以下配置即可解决</p>
 <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conf.set(<span class="string">&quot;spark.sql.caseSensitive&quot;</span>, <span class="string">&quot;true&quot;</span>)</span><br></pre></td></tr></table></figure>
@@ -632,7 +632,7 @@
                         <div class="article-tag">
                             
                                 <a href="/tags/PHP-Linux-IO/">
-                                    <span class="chip bg-color">PHP Linux IO</span>
+                                    <span class="chip bg-color">PHP,Linux,IO</span>
                                 </a>
                             
                         </div>
@@ -841,7 +841,7 @@
                 <div class="card-action article-tags">
                     
                     <a href="/tags/PHP-Linux-IO/">
-                        <span class="chip bg-color">PHP Linux IO</span>
+                        <span class="chip bg-color">PHP,Linux,IO</span>
                     </a>
                     
                 </div>
@@ -887,7 +887,7 @@
                 <div class="card-action article-tags">
                     
                     <a href="/tags/PHP-Linux-IO/">
-                        <span class="chip bg-color">PHP Linux IO</span>
+                        <span class="chip bg-color">PHP,Linux,IO</span>
                     </a>
                     
                 </div>
