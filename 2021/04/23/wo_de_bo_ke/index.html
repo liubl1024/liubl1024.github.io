@@ -31,8 +31,7 @@
 
 <meta name="generator" content="Hexo 5.4.0">
 <style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
-<link rel="stylesheet" href="/css/prism-tomorrow.css" type="text/css">
-<link rel="stylesheet" href="/css/prism-line-numbers.css" type="text/css"></head>
+<link rel="stylesheet" href="/css/prism-tomorrow.css" type="text/css"></head>
 
 
 
@@ -472,18 +471,46 @@
                 
 
                 
-
+                <div class="post-date info-break-policy">
+                    <i class="far fa-calendar-check fa-fw"></i>更新日期:&nbsp;&nbsp;
+                    2021-04-28
+                </div>
                 
 
                 
+                <div class="info-break-policy">
+                    <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
+                    2.1k
+                </div>
+                
 
                 
+                <div class="info-break-policy">
+                    <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
+                    10 分
+                </div>
+                
+
+                
+                    <div id="busuanzi_container_page_pv" class="info-break-policy">
+                        <i class="far fa-eye fa-fw"></i>阅读次数:&nbsp;&nbsp;
+                        <span id="busuanzi_value_page_pv"></span>
+                    </div>
+				
             </div>
         </div>
         <hr class="clearfix">
 
         
+        <!-- 是否加载使用自带的 prismjs. -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/prism/prism.css">
+        
 
+        
+        <!-- 代码块折行 -->
+        <style type="text/css">
+            code[class*="language-"], pre[class*="language-"] { white-space: pre-wrap !important; }
+        </style>
         
 
         <div class="card-content article-card-content">
@@ -492,102 +519,337 @@
 <p>记一次 php  file_put_contents 并发写入  顺序混乱的问题排查</p>
 </blockquote>
 <h3 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h3><p>事情是这样的，本来用 spark 跑采集的客户端日志，结果报错如下:</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">WARN [main] DataSource: Found duplicate column(s) <span class="keyword">in</span> the data schema and the partition schema:  `report_time`;</span><br><span class="line">Exception <span class="keyword">in</span> thread <span class="string">"main"</span> org.apache.spark.sql.AnalysisException: Found duplicate column(s) <span class="keyword">in</span> the data schema: `report_time`;</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">WARN [main] DataSource: Found duplicate column(s) in the data schema and the partition schema:  `report_time`;
+Exception in thread "main" org.apache.spark.sql.AnalysisException: Found duplicate column(s) in the data schema: `report_time`;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 
 <h4 id="尝试搜索解决"><a href="#尝试搜索解决" class="headerlink" title="尝试搜索解决"></a>尝试搜索解决</h4><p>通过 搜索 大多数说法是日志中可能存在相同字段但是不同大小写的问题，只需要在代码中添加以下配置即可解决</p>
-<figure class="highlight scala"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conf.set(<span class="string">"spark.sql.caseSensitive"</span>, <span class="string">"true"</span>)</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-scala" data-language="scala"><code class="language-scala">conf.set("spark.sql.caseSensitive", "true")<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>但是添加完之后，依然报相同错误，经过一番推测 可能是源日志 有问题，于是写了 以下脚本来校验每行 <code>json</code> 是否完整</p>
 <p>file: check.php</p>
-<figure class="highlight php"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$file</span> = <span class="string">"report.log"</span>;</span><br><span class="line"><span class="variable">$fd</span> = fopen(<span class="variable">$file</span>,<span class="string">"r"</span>);</span><br><span class="line"><span class="variable">$i</span>=<span class="number">0</span>;</span><br><span class="line"><span class="keyword">while</span>(!feof(<span class="variable">$fd</span>)){</span><br><span class="line">    <span class="variable">$row</span> = fgets(<span class="variable">$fd</span>,<span class="number">65535</span>);</span><br><span class="line">    <span class="variable">$arr</span> = json_decode(<span class="variable">$row</span>,<span class="literal">true</span>);  <span class="comment">// 如果有不完整的数据 或者解析 json 失败的数据 就打印</span></span><br><span class="line">    <span class="keyword">if</span>(json_last_error()){</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"==============start=<span class="subst">{$i}</span>=============\n"</span>;</span><br><span class="line">        <span class="keyword">echo</span> <span class="variable">$row</span>.PHP_EOL;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">"==============end===<span class="subst">{$i}</span>===========\n"</span>;</span><br><span class="line">    }</span><br><span class="line">    <span class="variable">$i</span>++;</span><br><span class="line">}</span><br><span class="line">fclose(<span class="variable">$fd</span>);</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-php" data-language="php"><code class="language-php">&lt;?php
+$file = "report.log";
+$fd = fopen($file,"r");
+$i=0;
+while(!feof($fd)){
+    $row = fgets($fd,65535);
+    $arr = json_decode($row,true);  // 如果有不完整的数据 或者解析 json 失败的数据 就打印
+    if(json_last_error()){
+        echo "==============start={$i}=============\n";
+        echo $row.PHP_EOL;
+        echo "==============end==={$i}===========\n";
+    }
+    $i++;
+}
+fclose($fd);<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 
 
 <p>得到输出如下:</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">....</span><br><span class="line">==============start=586487=============</span><br><span class="line">{...   省略若干无用信息</span><br><span class="line"><span class="string">"app_version"</span>:<span class="string">"1.0.ice_model"</span>:<span class="string">"V2049A"</span>,</span><br><span class="line"> ...   省略若干无用信息</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">==============end===586487===========</span><br><span class="line">....</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">....
+==============start=586487=============
+{...   省略若干无用信息
+"app_version":"1.0.ice_model":"V2049A",
+ ...   省略若干无用信息
+}
+
+==============end===586487===========
+....<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>可以看到 存在 这样的数据，明显是 并发写入时  json 被截断</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"app_version"</span>:<span class="string">"1.0.ice_model"</span>:<span class="string">"V2049A"</span>,</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">"app_version":"1.0.ice_model":"V2049A",<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>一看不合理啊 客户端日志上报 是用 <code>file_put_centents</code> 写入的， 已经添加了  <code>FILE_APPEND</code> 参数，此参数 对应 系统调用的  <code>write</code> <code>O_APPEND</code> 参数，记得在 <code>APUE</code> 中 写到 <code>write</code>  加上  <code>O_APPEND</code> 参数 就能保证写入数据是原子的，不会互相覆盖，但是目前现象是 写入的数据乱序了。</p>
 <h3 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h3><p>猜测可能是 并发写入时导致的，因此 通过 PHP <code>多进程 </code>并发写同一文件 测试来复现</p>
 <h4 id="使用多进程复现"><a href="#使用多进程复现" class="headerlink" title="使用多进程复现"></a>使用多进程复现</h4><p>file:  pcntl_chunk.php</p>
-<figure class="highlight php"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$out</span> = <span class="string">"out.log"</span>;</span><br><span class="line"><span class="variable">$content</span> = <span class="string">"record\n"</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> ( <span class="variable">$i</span> = <span class="number">1</span>; <span class="variable">$i</span> &lt;= <span class="number">200</span>; <span class="variable">$i</span>++ ) {</span><br><span class="line">    <span class="variable">$pid</span> = pcntl_fork();</span><br><span class="line">    <span class="keyword">if</span> ( <span class="number">0</span> == <span class="variable">$pid</span> ) {</span><br><span class="line">        <span class="keyword">for</span> (<span class="variable">$c</span> = <span class="number">1</span>; <span class="variable">$c</span> &lt;= <span class="number">10</span>; <span class="variable">$c</span>++ ) {</span><br><span class="line">            file_put_contents(<span class="variable">$out</span>, <span class="variable">$content</span>, FILE_APPEND);</span><br><span class="line">        }</span><br><span class="line">        <span class="keyword">exit</span>;</span><br><span class="line">    }</span><br><span class="line">    sleep(<span class="number">3</span>);</span><br><span class="line">    <span class="keyword">exit</span>;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-php" data-language="php"><code class="language-php">$out = "out.log";
+$content = "record\n";
+
+for ( $i = 1; $i &lt;= 200; $i++ ) {
+    $pid = pcntl_fork();
+    if ( 0 == $pid ) {
+        for ($c = 1; $c &lt;= 10; $c++ ) {
+            file_put_contents($out, $content, FILE_APPEND);
+        }
+        exit;
+    }
+    sleep(3);
+    exit;
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 
 
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ wc -l out.log</span><br><span class="line">2000 out.log</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ wc -l out.log
+2000 out.log<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 
 <p>正常 应该输出 2000 行，多次测试 均无异常，但是线上收集客户端写入的日志里确实存在被截断的情况</p>
 <p>干脆直接 通过  <code>strace</code> 命令，追踪 收集上报日志的  php-fpm 进程</p>
 <p>假设  1234  为某个  php-fpm 进程 id</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ strace  -p   1234</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">$ strace  -p   1234<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>可以看到以下输出</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">...  省略若干无用信息</span><br><span class="line"></span><br><span class="line">       </span><br><span class="line">open(<span class="string">"/data/collect/zyj/2021/04/21"</span>, O_WRONLY|O_CREAT|O_APPEND, 0666) = 5</span><br><span class="line">fstat(5, {st_mode=S_IFREG|0644, st_size=4360482272, ...}) = 0</span><br><span class="line">lseek(5, 0, SEEK_CUR)                   = 0</span><br><span class="line">lseek(5, 0, SEEK_CUR)                   = 0</span><br><span class="line">write(5, <span class="string">"{\"type\":\"up\",\"time\":\"2021-0"</span>..., 8192) = 8192   <span class="comment"># 可以看到这里  写入的日志 超过 8192 被分批写入</span></span><br><span class="line">write(5, <span class="string">"755e18a\",\"ip\":\"127.0.0.0\",\""</span>..., 7263) = 7263    <span class="comment"># 这里写入余下的数据</span></span><br><span class="line">close(5)                                = 0</span><br><span class="line">write(4, <span class="string">"\1\6\0\1\0T\4\0X-Powered-By: PHP/7.2.27"</span>..., 112) = 112</span><br><span class="line">shutdown(4, SHUT_WR)                    = 0</span><br><span class="line">recvfrom(4, <span class="string">"\1\5\0\1\0\0\0\0"</span>, 8, 0, NULL, NULL) = 8</span><br><span class="line">recvfrom(4, <span class="string">""</span>, 8, 0, NULL, NULL)       = 0</span><br><span class="line">close(4)</span><br><span class="line"></span><br><span class="line">...  省略若干无用信息</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">...  省略若干无用信息
+
+       
+open("/data/collect/zyj/2021/04/21", O_WRONLY|O_CREAT|O_APPEND, 0666) = 5
+fstat(5, {st_mode=S_IFREG|0644, st_size=4360482272, ...}) = 0
+lseek(5, 0, SEEK_CUR)                   = 0
+lseek(5, 0, SEEK_CUR)                   = 0
+write(5, "{\"type\":\"up\",\"time\":\"2021-0"..., 8192) = 8192   # 可以看到这里  写入的日志 超过 8192 被分批写入
+write(5, "755e18a\",\"ip\":\"127.0.0.0\",\""..., 7263) = 7263    # 这里写入余下的数据
+close(5)                                = 0
+write(4, "\1\6\0\1\0T\4\0X-Powered-By: PHP/7.2.27"..., 112) = 112
+shutdown(4, SHUT_WR)                    = 0
+recvfrom(4, "\1\5\0\1\0\0\0\0", 8, 0, NULL, NULL) = 8
+recvfrom(4, "", 8, 0, NULL, NULL)       = 0
+close(4)
+
+...  省略若干无用信息<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>仔细看上面注释，存在系统调用 <code>write</code> 文件时 长度大于 <code>8192</code> 也就是 8k  分批写入的情况，因此推测 刚刚复现的脚本中写入的数据长度不够，所以没有成功复现<br>我们加大 写入内容的长度，再次用 <code>strace</code> 观察 在系统调用 <code>write</code> 时是否是分批写入</p>
 <p>file:chunk.php</p>
-<figure class="highlight php"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$data</span> = [</span><br><span class="line">    <span class="string">"type"</span>=&gt;<span class="string">"report"</span>,</span><br><span class="line">    <span class="string">"time"</span>=&gt;time(),</span><br><span class="line">    <span class="string">"data"</span>=&gt;[],</span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="number">2000</span>;<span class="variable">$i</span>++){</span><br><span class="line">    <span class="variable">$data</span>[<span class="string">"data"</span>][] = [<span class="string">"abc"</span>.<span class="variable">$i</span>=&gt;rand(<span class="number">100</span>,<span class="number">999</span>)];</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line"><span class="variable">$content</span> = json_encode(<span class="variable">$data</span>).PHP_EOL;</span><br><span class="line"><span class="keyword">echo</span> strlen(<span class="variable">$content</span>).PHP_EOL;</span><br><span class="line"></span><br><span class="line"><span class="variable">$out</span> = <span class="string">"out.log"</span>;</span><br><span class="line">file_put_contents(<span class="variable">$out</span>, <span class="variable">$content</span>, FILE_APPEND);</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-php" data-language="php"><code class="language-php">&lt;?php
+$data = [
+    "type"=&gt;"report",
+    "time"=&gt;time(),
+    "data"=&gt;[],
+];
+
+for($i=0;$i&lt;2000;$i++){
+    $data["data"][] = ["abc".$i=&gt;rand(100,999)];
+}
+
+$content = json_encode($data).PHP_EOL;
+echo strlen($content).PHP_EOL;
+
+$out = "out.log";
+file_put_contents($out, $content, FILE_APPEND);<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>写入数据 长度为 30935 字节</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># php chunk.php</span></span><br><span class="line">30935</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"># php chunk.php
+30935<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 
 <p>用 strace 执行可以看到如下输出</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strace php chunk.php</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">strace php chunk.php<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">... ... 省去无用信息</span><br><span class="line"></span><br><span class="line">lstat(<span class="string">"/root/test/out.log"</span>, {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0</span><br><span class="line">open(<span class="string">"/root/test/out.log"</span>, O_WRONLY|O_CREAT|O_APPEND, 0666) = 3</span><br><span class="line">fstat(3, {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0</span><br><span class="line">lseek(3, 0, SEEK_CUR)                   = 0</span><br><span class="line">lseek(3, 0, SEEK_CUR)                   = 0</span><br><span class="line">write(3, <span class="string">"{\"type\":\"report\",\"time\":16191055"</span>..., 8192) = 8192</span><br><span class="line">write(3, <span class="string">":359},{\"abc551\":207},{\"abc552\":5"</span>..., 8192) = 8192</span><br><span class="line">write(3, <span class="string">"225},{\"abc1091\":544},{\"abc1092\":"</span>..., 8192) = 8192</span><br><span class="line">write(3, <span class="string">"266},{\"abc1603\":422},{\"abc1604\":"</span>..., 6359) = 6359</span><br><span class="line">close(3)                                = 0</span><br><span class="line">close(2)                                = 0</span><br><span class="line">close(1)                                = 0</span><br><span class="line">close(0)                                = 0</span><br><span class="line">... ... 省去无用信息</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">... ... 省去无用信息
+
+lstat("/root/test/out.log", {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0
+open("/root/test/out.log", O_WRONLY|O_CREAT|O_APPEND, 0666) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=12712298, ...}) = 0
+lseek(3, 0, SEEK_CUR)                   = 0
+lseek(3, 0, SEEK_CUR)                   = 0
+write(3, "{\"type\":\"report\",\"time\":16191055"..., 8192) = 8192
+write(3, ":359},{\"abc551\":207},{\"abc552\":5"..., 8192) = 8192
+write(3, "225},{\"abc1091\":544},{\"abc1092\":"..., 8192) = 8192
+write(3, "266},{\"abc1603\":422},{\"abc1604\":"..., 6359) = 6359
+close(3)                                = 0
+close(2)                                = 0
+close(1)                                = 0
+close(0)                                = 0
+... ... 省去无用信息<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>可以看到  写入数据 分了五次  8192*3 + 6359 = 30935 刚好是我们写入的长度。</p>
 <h3 id="再次复现"><a href="#再次复现" class="headerlink" title="再次复现"></a>再次复现</h3><p>用 多进程 加大写入数据长度 并发 写入 out.log 文件</p>
 <p>file : pcntl_fork.php</p>
-<figure class="highlight php"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$data</span> = [</span><br><span class="line">    <span class="string">"type"</span>=&gt;<span class="string">"report"</span>,</span><br><span class="line">    <span class="string">"time"</span>=&gt;time(),</span><br><span class="line">    <span class="string">"data"</span>=&gt;[],</span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="number">2000</span>;<span class="variable">$i</span>++){</span><br><span class="line">    <span class="variable">$data</span>[<span class="string">"data"</span>][] = [<span class="string">"abc"</span>.<span class="variable">$i</span>=&gt;rand(<span class="number">100</span>,<span class="number">999</span>)];</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line"><span class="variable">$content</span> = json_encode(<span class="variable">$data</span>).PHP_EOL;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> ( <span class="variable">$i</span> = <span class="number">0</span>; <span class="variable">$i</span> &lt; <span class="number">20</span>; <span class="variable">$i</span>++ ) {</span><br><span class="line">    <span class="variable">$pid</span> = pcntl_fork();</span><br><span class="line">    <span class="keyword">if</span> ( <span class="number">0</span> == <span class="variable">$pid</span> ) {</span><br><span class="line">        <span class="keyword">for</span> (<span class="variable">$c</span> = <span class="number">0</span>; <span class="variable">$c</span> &lt; <span class="number">10</span>; <span class="variable">$c</span>++) {</span><br><span class="line">            <span class="variable">$out</span> = <span class="string">"out.log"</span>;</span><br><span class="line">            file_put_contents(<span class="variable">$out</span>, <span class="variable">$content</span>, FILE_APPEND);</span><br><span class="line">        }</span><br><span class="line">        <span class="keyword">exit</span>;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-php" data-language="php"><code class="language-php">$data = [
+    "type"=&gt;"report",
+    "time"=&gt;time(),
+    "data"=&gt;[],
+];
+
+for($i=0;$i&lt;2000;$i++){
+    $data["data"][] = ["abc".$i=&gt;rand(100,999)];
+}
+
+$content = json_encode($data).PHP_EOL;
+
+for ( $i = 0; $i &lt; 20; $i++ ) {
+    $pid = pcntl_fork();
+    if ( 0 == $pid ) {
+        for ($c = 0; $c &lt; 10; $c++) {
+            $out = "out.log";
+            file_put_contents($out, $content, FILE_APPEND);
+        }
+        exit;
+    }
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>执行  </p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php  pcntl_fork.php</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">php  pcntl_fork.php<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>用  check.php  检查 输出 out.log 输出 发现有以下内容</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">==============start=94=============</span><br><span class="line">abc293<span class="string">":823},{"</span>abc294<span class="string">":539},{"</span>abc29</span><br><span class="line">...</span><br><span class="line">==============end===94===========</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">==============start=94=============
+abc293":823},{"abc294":539},{"abc29
+...
+==============end===94===========<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>由此问题复现，可以得出结论，file_put_contents 时 如果只加 FILE_APPEND 参数，那么 写入长度 不大于 8k 时是原子写入，如果大于 8k 就不是原子，并发写入存在乱序的可能， 此时如果要杜绝这种情况 需要添加 LOCK_EX 参数。</p>
 <p>一般情况 到这里就结束了，但是本着 刨根问底的思想，我们要一探究竟，为什么？ PHP 什么会出现这种情况，是内部 file_put_contents 实现的原因吗？  此时我们要到源码一探究竟</p>
-<h3 id="查看源码-过程"><a href="#查看源码-过程" class="headerlink" title="查看源码 过程"></a>查看源码 过程</h3><h4 id="1-下载源码"><a href="#1-下载源码" class="headerlink" title="1. 下载源码"></a>1. 下载源码</h4><figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/php/php-src/archive/refs/tags/php-7.4.18RC1.tar.gz</span><br><span class="line"></span><br><span class="line">tar xf php-7.4.18RC1.tar.gz</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> php-7.4.18RC1</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="查看源码-过程"><a href="#查看源码-过程" class="headerlink" title="查看源码 过程"></a>查看源码 过程</h3><h4 id="1-下载源码"><a href="#1-下载源码" class="headerlink" title="1. 下载源码"></a>1. 下载源码</h4><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">wget https://github.com/php/php-src/archive/refs/tags/php-7.4.18RC1.tar.gz
+
+tar xf php-7.4.18RC1.tar.gz
+
+cd php-7.4.18RC1<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <h4 id="2-先找到-file-put-contents-定义"><a href="#2-先找到-file-put-contents-定义" class="headerlink" title="2. 先找到 file_put_contents 定义"></a>2. 先找到 file_put_contents 定义</h4><p>file : ext/standard/file.c</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">PHP_FUNCTION(file_put_contents)</span><br><span class="line">{</span><br><span class="line">	php_stream *stream;</span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">.....  省去无关代码</span><br><span class="line"></span><br><span class="line">		<span class="keyword">case</span> IS_STRING:</span><br><span class="line">			<span class="keyword">if</span> (Z_STRLEN_P(data)) {</span><br><span class="line">                <span class="comment">// ======================= ！！！ 主要看这里  !!! =================</span></span><br><span class="line">                <span class="comment">// ==========  file_put_contents 中 写入主要是 php_stream_write ==</span></span><br><span class="line">				numbytes = php_stream_write(stream, Z_STRVAL_P(data), Z_STRLEN_P(data));</span><br><span class="line">                <span class="comment">// ======================= ！！！ 主要看这里  !!! =================</span></span><br><span class="line">				<span class="keyword">if</span> (numbytes != Z_STRLEN_P(data)) {</span><br><span class="line">					php_error_docref(<span class="literal">NULL</span>, E_WARNING, <span class="string">"Only %zd of %zd bytes written, possibly out of free disk space"</span>, numbytes, Z_STRLEN_P(data));</span><br><span class="line">					numbytes = <span class="number">-1</span>;</span><br><span class="line">				}</span><br><span class="line">			}</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">......  省去无关代码 </span><br><span class="line">	php_stream_close(stream);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (numbytes &lt; <span class="number">0</span>) {</span><br><span class="line">		RETURN_FALSE;</span><br><span class="line">	}</span><br><span class="line"></span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">PHP_FUNCTION(file_put_contents)
+{
+	php_stream *stream;
+	
+
+.....  省去无关代码
+
+		case IS_STRING:
+			if (Z_STRLEN_P(data)) {
+                // ======================= ！！！ 主要看这里  !!! =================
+                // ==========  file_put_contents 中 写入主要是 php_stream_write ==
+				numbytes = php_stream_write(stream, Z_STRVAL_P(data), Z_STRLEN_P(data));
+                // ======================= ！！！ 主要看这里  !!! =================
+				if (numbytes != Z_STRLEN_P(data)) {
+					php_error_docref(NULL, E_WARNING, "Only %zd of %zd bytes written, possibly out of free disk space", numbytes, Z_STRLEN_P(data));
+					numbytes = -1;
+				}
+			}
+			break;
+
+......  省去无关代码 
+	php_stream_close(stream);
+
+	if (numbytes &lt; 0) {
+		RETURN_FALSE;
+	}
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <h4 id="3-查看-php-stream-write-定义"><a href="#3-查看-php-stream-write-定义" class="headerlink" title="3. 查看  php_stream_write 定义"></a>3. 查看  php_stream_write 定义</h4><p>file : main/php_streams.h</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> php_stream_write(stream, buf, count)    _php_stream_write(stream, (buf), (count))</span></span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">#define php_stream_write(stream, buf, count)    _php_stream_write(stream, (buf), (count))<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <h4 id="4-查看-php-stream-实现"><a href="#4-查看-php-stream-实现" class="headerlink" title="4. 查看 php_stream 实现"></a>4. 查看 php_stream 实现</h4><p>file: main/streams/streams.c</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">PHPAPI <span class="keyword">ssize_t</span> _php_stream_write(php_stream *stream, <span class="keyword">const</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> count)</span><br><span class="line">{</span><br><span class="line">    <span class="keyword">ssize_t</span> bytes;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count == <span class="number">0</span>) {</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;                                                                                        }</span><br><span class="line"></span><br><span class="line">    ZEND_ASSERT(buf != <span class="literal">NULL</span>);</span><br><span class="line">    <span class="keyword">if</span> (stream-&gt;ops-&gt;write == <span class="literal">NULL</span>) {</span><br><span class="line">        php_error_docref(<span class="literal">NULL</span>, E_NOTICE, <span class="string">"Stream is not writable"</span>);</span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">ssize_t</span>) <span class="number">-1</span>;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (stream-&gt;writefilters.head) {                                                                         bytes = 		 _php_stream_write_filtered(stream, buf, count, PSFS_FLAG_NORMAL);</span><br><span class="line">    } <span class="keyword">else</span> {</span><br><span class="line">          <span class="comment">// ==========  这里 又跳到   _php_stream_write_buffer 函数</span></span><br><span class="line">        bytes = _php_stream_write_buffer(stream, buf, count);</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (bytes) {</span><br><span class="line">        stream-&gt;flags |= PHP_STREAM_FLAG_WAS_WRITTEN;</span><br><span class="line">    }</span><br><span class="line">                                                                                                         <span class="keyword">return</span> bytes;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">PHPAPI ssize_t _php_stream_write(php_stream *stream, const char *buf, size_t count)
+{
+    ssize_t bytes;
+
+    if (count == 0) {
+        return 0;                                                                                        }
+
+    ZEND_ASSERT(buf != NULL);
+    if (stream-&gt;ops-&gt;write == NULL) {
+        php_error_docref(NULL, E_NOTICE, "Stream is not writable");
+        return (ssize_t) -1;
+    }
+
+    if (stream-&gt;writefilters.head) {                                                                         bytes = 		 _php_stream_write_filtered(stream, buf, count, PSFS_FLAG_NORMAL);
+    } else {
+          // ==========  这里 又跳到   _php_stream_write_buffer 函数
+        bytes = _php_stream_write_buffer(stream, buf, count);
+    }
+
+    if (bytes) {
+        stream-&gt;flags |= PHP_STREAM_FLAG_WAS_WRITTEN;
+    }
+                                                                                                         return bytes;
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <h4 id="5-继续-看-php-stream-write-buffer-函数实现"><a href="#5-继续-看-php-stream-write-buffer-函数实现" class="headerlink" title="5. 继续 看 _php_stream_write_buffer 函数实现"></a>5. 继续 看 _php_stream_write_buffer 函数实现</h4><p>file : main/streams/streams.c</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Writes a buffer directly to a stream, using multiple of the chunk size */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">ssize_t</span> _php_stream_write_buffer(php_stream *stream, <span class="keyword">const</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> count)</span><br><span class="line">{</span><br><span class="line">    <span class="keyword">ssize_t</span> didwrite = <span class="number">0</span>, justwrote;</span><br><span class="line">                                                                                                        </span><br><span class="line">...  省略无关代码</span><br><span class="line">    <span class="keyword">while</span> (count &gt; <span class="number">0</span>) {</span><br><span class="line">        <span class="keyword">size_t</span> towrite = count;</span><br><span class="line">        <span class="comment">// ==================== !!!! 看这里  chunk_size 超过 chunk_size 会被截断 ================</span></span><br><span class="line">        <span class="keyword">if</span> (towrite &gt; stream-&gt;chunk_size)</span><br><span class="line">            towrite = stream-&gt;chunk_size;</span><br><span class="line">        <span class="comment">// ====================== chunk_size ===================</span></span><br><span class="line"></span><br><span class="line">        justwrote = stream-&gt;ops-&gt;write(stream, buf, towrite);</span><br><span class="line">        <span class="keyword">if</span> (justwrote &lt;= <span class="number">0</span>) {                                                                                    <span class="comment">/* If we already successfully wrote some bytes and a write error occurred</span></span><br><span class="line"><span class="comment">             * later, report the successfully written bytes. */</span></span><br><span class="line">            <span class="keyword">if</span> (didwrite == <span class="number">0</span>) {</span><br><span class="line">                <span class="keyword">return</span> justwrote;</span><br><span class="line">            }</span><br><span class="line">            <span class="keyword">return</span> didwrite;</span><br><span class="line">        }</span><br><span class="line"></span><br><span class="line">... 省略无关代码     </span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> didwrite;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">/* Writes a buffer directly to a stream, using multiple of the chunk size */
+static ssize_t _php_stream_write_buffer(php_stream *stream, const char *buf, size_t count)
+{
+    ssize_t didwrite = 0, justwrote;
+                                                                                                        
+...  省略无关代码
+    while (count &gt; 0) {
+        size_t towrite = count;
+        // ==================== !!!! 看这里  chunk_size 超过 chunk_size 会被截断 ================
+        if (towrite &gt; stream-&gt;chunk_size)
+            towrite = stream-&gt;chunk_size;
+        // ====================== chunk_size ===================
+
+        justwrote = stream-&gt;ops-&gt;write(stream, buf, towrite);
+        if (justwrote &lt;= 0) {                                                                                    /* If we already successfully wrote some bytes and a write error occurred
+             * later, report the successfully written bytes. */
+            if (didwrite == 0) {
+                return justwrote;
+            }
+            return didwrite;
+        }
+
+... 省略无关代码     
+    }
+
+    return didwrite;
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <h4 id="6-查看-chunk-size-大小"><a href="#6-查看-chunk-size-大小" class="headerlink" title="6. 查看  chunk_size 大小"></a>6. 查看  chunk_size 大小</h4><p>在  php_stream 定义</p>
 <p>file:   main/php_streams.h</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">php_stream</span> <span class="title">php_stream</span>;</span></span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">typedef struct _php_stream php_stream;<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>file:  main/php_streams.h</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">php_stream</span>  {</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* how much data to read when filling buffer */</span></span><br><span class="line">    <span class="keyword">size_t</span> chunk_size;</span><br><span class="line">    </span><br><span class="line">    ...   </span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">struct _php_stream  {
+    ...
+
+    /* how much data to read when filling buffer */
+    size_t chunk_size;
+    
+    ...   
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>我们 看到 chunk_size 大小 由  size_t  决定，根据 系统实现 在 64 位系统中为 8k 长度即为 8192 , 这就可以看到 file_put_contents 如果大于 8k 就不是一个系统调用了， 因此不是原子的，不加锁的情况 会乱序。</p>
 <p>那么为什么 file_put_contents 要限制 写入 大小超过 size_t 要分批呢，是PHP 独有的还是 其它语言也有这个问题  ?</p>
 <h3 id="其它语言是否有这个问题？"><a href="#其它语言是否有这个问题？" class="headerlink" title="其它语言是否有这个问题？"></a>其它语言是否有这个问题？</h3><p>我们接着以  C 语言查看是否有同样现象</p>
 <p>file : write.c</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>{</span><br><span class="line">   FILE *fp = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">char</span> buff[<span class="number">10000</span>];</span><br><span class="line">   <span class="keyword">int</span> i;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">for</span>(i=<span class="number">0</span>;i&lt;<span class="number">2000</span>;i++){</span><br><span class="line">       <span class="built_in">strcat</span>(buff, <span class="string">"abcdef\n"</span>);</span><br><span class="line">   }</span><br><span class="line"></span><br><span class="line">   fp = fopen(<span class="string">"c_out.log"</span>, O_CREAT|O_APPEND);</span><br><span class="line">   <span class="built_in">fputs</span>(buff, fp);</span><br><span class="line">   fclose(fp);</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-c" data-language="c"><code class="language-c">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+int main()
+{
+   FILE *fp = NULL;
+
+   char buff[10000];
+   int i;
+
+   for(i=0;i&lt;2000;i++){
+       strcat(buff, "abcdef\n");
+   }
+
+   fp = fopen("c_out.log", O_CREAT|O_APPEND);
+   fputs(buff, fp);
+   fclose(fp);
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>编译执行</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cc  write.c  -o write</span><br><span class="line">strace write</span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">cc  write.c  -o write
+strace write<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 
 
 
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">open(<span class="string">"c_out.log"</span>, O_RDWR|O_CREAT|O_TRUNC, 0666) = 3</span><br><span class="line">fstat(3, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0</span><br><span class="line">mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f5b4d4b2000</span><br><span class="line">write(3, <span class="string">"abcdef\nabcdef\nabcdef\nabcdef\nabcd"</span>..., 8192) = 8192</span><br><span class="line">write(3, <span class="string">"cdef\nabcdef\nabcdef\nabcdef\nabcdef"</span>..., 1812) = 1812</span><br><span class="line">close(3)                                = 0</span><br><span class="line">munmap(0x7f5b4d4b2000, 4096)            = 0</span><br><span class="line">exit_group(0)                           = ?</span><br><span class="line"></span><br></pre></td></tr></tbody></table></figure>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">open("c_out.log", O_RDWR|O_CREAT|O_TRUNC, 0666) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f5b4d4b2000
+write(3, "abcdef\nabcdef\nabcdef\nabcdef\nabcd"..., 8192) = 8192
+write(3, "cdef\nabcdef\nabcdef\nabcdef\nabcdef"..., 1812) = 1812
+close(3)                                = 0
+munmap(0x7f5b4d4b2000, 4096)            = 0
+exit_group(0)                           = ?
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>可以看到 C 语言中 <code>write</code>  超过 8k 也会拆分，看来不是 php 独有的问题，是系统的问题。</p>
 <p>为什么系统调用 <code>wirte</code> 时 超过 8k 就会不是原子操作， 这个问题我们下篇文章继续探讨。</p>
+<pre class="line-numbers language-json" data-language="json"><code class="language-json">{ "name": "hexo-site", "version": "0.0.0", "private": true, "scripts": { "build": "hexo generate", "clean": "hexo clean", "deploy": "hexo deploy", "server": "hexo server" }, "hexo": { "version": "5.3.0" }, "dependencies": { "hexo": "^5.3.0", "hexo-deployer-git": "^2.1.0", "hexo-filter-github-emojis": "^3.0.4", "hexo-filter-mermaid-diagrams": "^1.0.5", "hexo-generator-archive": "^1.0.0", "hexo-generator-baidu-sitemap": "^0.1.9", "hexo-generator-category": "^1.0.0", "hexo-generator-index": "^2.0.0", "hexo-generator-search": "^2.4.1", "hexo-generator-sitemap": "^2.1.0", "hexo-generator-tag": "^1.0.0", "hexo-permalink-pinyin": "^1.1.0", "hexo-renderer-ejs": "^1.0.0", "hexo-renderer-marked": "^3.0.0", "hexo-renderer-stylus": "^2.0.0", "hexo-server": "^2.0.0", "hexo-wordcount": "^6.0.1" } }<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
+<pre class="line-numbers language-cpp" data-language="cpp"><code class="language-cpp">template &lt; int n &gt; struct Sum {
+    enum Value {
+        N = Sum &lt; n - 1 &gt; ::N + n
+    };
+};
+template &lt; &gt; struct Sum &lt; 1 &gt; {
+    enum Value {
+        N = 1
+    };
+};
+int main() {
+    cout &lt;&lt; Sum &lt; 100 &gt; ::N;
+    return 0;
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
                 
             </div>
             <hr/>
@@ -613,7 +875,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://www.liubl.top/2021/04/23/wo-de-bo-ke/">https://www.liubl.top/2021/04/23/wo-de-bo-ke/</a>
+                    <a href="https://www.liubl.top/2021/04/23/wo_de_bo_ke/">https://www.liubl.top/2021/04/23/wo_de_bo_ke/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -837,7 +1099,7 @@
                 <i class="far fa-dot-circle"></i>&nbsp;本篇
             </div>
             <div class="card">
-                <a href="/2021/04/23/wo-de-bo-ke/">
+                <a href="/2021/04/23/wo_de_bo_ke/">
                     <div class="card-image">
                         
                         
@@ -895,7 +1157,7 @@
                 本篇&nbsp;<i class="far fa-dot-circle"></i>
             </div>
             <div class="card">
-                <a href="/2021/04/23/wo-de-bo-ke/">
+                <a href="/2021/04/23/wo_de_bo_ke/">
                     <div class="card-image">
                         
                         
@@ -952,6 +1214,43 @@
 
 </div>
 
+
+<script>
+    $('#articleContent').on('copy', function (e) {
+        // IE8 or earlier browser is 'undefined'
+        if (typeof window.getSelection === 'undefined') return;
+
+        var selection = window.getSelection();
+        // if the selection is short let's not annoy our users.
+        if (('' + selection).length < Number.parseInt('120')) {
+            return;
+        }
+
+        // create a div outside of the visible area and fill it with the selected text.
+        var bodyElement = document.getElementsByTagName('body')[0];
+        var newdiv = document.createElement('div');
+        newdiv.style.position = 'absolute';
+        newdiv.style.left = '-99999px';
+        bodyElement.appendChild(newdiv);
+        newdiv.appendChild(selection.getRangeAt(0).cloneContents());
+
+        // we need a <pre> tag workaround.
+        // otherwise the text inside "pre" loses all the line breaks!
+        if (selection.getRangeAt(0).commonAncestorContainer.nodeName === 'PRE') {
+            newdiv.innerHTML = "<pre>" + newdiv.innerHTML + "</pre>";
+        }
+
+        var url = document.location.href;
+        newdiv.innerHTML += '<br />'
+            + '来源: Liubl的博客<br />'
+            + '文章作者: Liubl<br />'
+            + '文章链接: <a href="' + url + '">' + url + '</a><br />'
+            + '本文章著作权归作者所有，任何形式的转载都请注明出处。';
+
+        selection.selectAllChildren(newdiv);
+        window.setTimeout(function () {bodyElement.removeChild(newdiv);}, 200);
+    });
+</script>
 
 
 <!-- 代码块功能依赖 -->
@@ -1140,6 +1439,9 @@
             |&nbsp;Powered by&nbsp;<a href="https://hexo.io/" target="_blank">Hexo</a>
             |&nbsp;Theme&nbsp;<a href="https://github.com/blinkfox/hexo-theme-matery" target="_blank">Matery</a>
             <br>
+            
+            &nbsp;<i class="fas fa-chart-area"></i>&nbsp;站点总字数:&nbsp;<span
+                class="white-color">2.1k</span>&nbsp;字
             
             
             
@@ -1337,8 +1639,6 @@ $(function () {
     })();
 </script>
 
-    
-    <script src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/others/clicklove.js" async="async"></script>
     
     
     <script async src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/others/busuanzi.pure.mini.js"></script>
