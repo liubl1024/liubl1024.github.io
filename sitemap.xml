@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://liubl.top/2021/04/23/wo-de-bo-ke/</loc>
+    <loc>https://www.liubl.top/2021/04/23/wo-de-bo-ke/</loc>
     
     <lastmod>2021-04-28</lastmod>
     
@@ -10,7 +10,7 @@
   
 
   <url>
-    <loc>http://liubl.top/</loc>
+    <loc>https://www.liubl.top/</loc>
     <lastmod>2021-04-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -18,21 +18,21 @@
 
   
   <url>
-    <loc>http://liubl.top/tags/PHP/</loc>
+    <loc>https://www.liubl.top/tags/PHP/</loc>
     <lastmod>2021-04-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>http://liubl.top/tags/Linux/</loc>
+    <loc>https://www.liubl.top/tags/Linux/</loc>
     <lastmod>2021-04-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>http://liubl.top/tags/IO/</loc>
+    <loc>https://www.liubl.top/tags/IO/</loc>
     <lastmod>2021-04-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -41,7 +41,7 @@
 
   
   <url>
-    <loc>http://liubl.top/categories/PHP/</loc>
+    <loc>https://www.liubl.top/categories/PHP/</loc>
     <lastmod>2021-04-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
