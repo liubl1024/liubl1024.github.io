@@ -4,7 +4,7 @@
 
 <head>
     <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
-    <meta name="keywords" content="聊一聊接口幂等性, 博客,技术博客">
+    <meta name="keywords" content="Vue 一键部署发布上线, 博客,技术博客">
     <meta name="description" content="记录开发的日常">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>聊一聊接口幂等性 | Liubl的博客</title>
+    <title>Vue 一键部署发布上线 | Liubl的博客</title>
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/awesome/css/all.css">
@@ -312,12 +312,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/1.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">聊一聊接口幂等性</h1>
+                    <h1 class="description center-align post-title">Vue 一键部署发布上线</h1>
                 </div>
             </div>
         </div>
@@ -433,8 +433,20 @@
                     
                     <div class="article-tag">
                         
-                            <a href="/tags/API/">
-                                <span class="chip bg-color">API</span>
+                            <a href="/tags/LINUX/">
+                                <span class="chip bg-color">LINUX</span>
+                            </a>
+                        
+                            <a href="/tags/VUE/">
+                                <span class="chip bg-color">VUE</span>
+                            </a>
+                        
+                            <a href="/tags/%E8%84%9A%E6%9C%AC%E5%B7%A5%E5%85%B7/">
+                                <span class="chip bg-color">脚本工具</span>
+                            </a>
+                        
+                            <a href="/tags/expect/">
+                                <span class="chip bg-color">expect</span>
                             </a>
                         
                     </div>
@@ -445,8 +457,8 @@
                     <div class="post-cate">
                         <i class="fas fa-bookmark fa-fw icon-category"></i>
                         
-                            <a href="/categories/API/" class="post-category">
-                                API
+                            <a href="/categories/VUE/" class="post-category">
+                                VUE
                             </a>
                         
                     </div>
@@ -458,28 +470,28 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2021-02-08
+                    2021-01-23
                 </div>
                 
 
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-check fa-fw"></i>更新日期:&nbsp;&nbsp;
-                    2021-04-29
+                    2021-04-30
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
-                    963
+                    585
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
-                    3 分
+                    2 分
                 </div>
                 
 
@@ -504,37 +516,110 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>回想曾经刚来北京，去某厂面试，前面聊得还不错，后面突然被问到幂等性问题，当时从二线城市出来，完全没听过这个名词有点懵，没答上来，明显感觉面试官态度有所变化。面试结束后一查才知道，平时开发过程中防止用户重复点击等场景，其实已经用到过就是不知道这个名词。</p>
-<p>幂等性其实就是多次调用接口返回值和影响结果与单次调用的返回值和影响相同。</p>
-<p>拿类似微博的系统来说，如果查看某个人的微博，查询一次和查询多次结果是一样的，并且都不会影响数据库中关于这条微博的存储结果。</p>
-<p>因此可以说，查询天生就是幂等性的， 在 <code>Restful</code> 中 即  GET 是幂等性。</p>
-<pre class=" language-bash"><code class="language-bash">GET  http://somesite.com/?id<span class="token operator">=</span>1    <span class="token comment" spellcheck="true"># 多次调用 对后端无影响</span>
-</code></pre>
-<p>如果作为用户，发一条微博，由于手抖或者网络波动重试而发出去了多条相同的微博，那么此时肯定不是我们想要的结果，所以新增不是幂等性的。</p>
-<pre class=" language-bash"><code class="language-bash">POST   http://somesite.com/weibo     <span class="token comment" spellcheck="true"># 多次调用会生成多条记录</span>
-</code></pre>
-<p>修改和删除也类似，加入某个用户要加经验或金币，一般不会用  update set 具体值操作，而是使用  += ，那么多次修改金币或经验数肯定对不上了。</p>
-<p>删除虽说 一般标记 状态 <code> is_del  = true</code>  的假删除  ，但是对同一 id 多次请求 <code>DELETE</code>  返回结果可能是不一样的。</p>
-<h4 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h4><p>其实解决办法基本上都能想到，就是用  token 或叫做 noceid 的字符串来标记请求，如果第一次处理成功就记录 token 和返回结果，如果处理失败就立即删除 token ，后面如果有相同 token 和参数的请求就直接返回 记录的结果。token 最好客户端生成，因为服务端很难区分是真实的需要新增或修改多条数据还是由于某些原因重复发送的数据</p>
-<p>生成 token 得注意：</p>
-<p>token 尽可能<strong>唯一</strong>， token 一般是客户端生成，因此可以利用客户端的信息元素 加时间戳等 算法来保证唯一</p>
-<p>一般来说用 redis 来存储比较合适，因为 redis 是单线程，第一个请求到来后，可以马上把 token 放到 <code>string</code> 中存储，系统开销也会较小。</p>
-<p>几个常用 设计幂等操作的方法</p>
+                <p> 一般来说软件开发流程规范的公司会有标准 CI/CD 流程，本文不谈 Jenkins 或是git hook 等工具，介绍两种在小项目中最快也最原始的方式一键打包上线的方式。</p>
+<ul>
+<li> webpack-sftp-client</li>
+<li> shell  expect</li>
+</ul>
+<p>​    webpack-sftp-client，使用步骤如下：</p>
 <ol>
-<li><p>利用数据库的唯一约束实现</p>
-<p> mysql    insert if not exist</p>
-<p> redis   setnx 代替</p>
-</li>
-<li><p>为更新的数据设置前置条件</p>
-<p> “将账户 X 的余额增加 100 元”这个操作并不满足幂等性，我们可以把这个操作加上一个前置条件，变为：“如果账户 X 当前的余额为 500 元，将余额加 100 元”，这个操作就具备了幂等性</p>
-<p> 例如更新前  查询 select   …  for update</p>
-<p> 数据增加版本号属性 </p>
-</li>
-<li><p>记录并检查操作</p>
-<p> 也称为“Token 机制或者 GUID（全局唯一 ID）机制”，实现的思路特别简单：在执行数据更新操作之前，先检查一下是否执行过这个更新操作</p>
-<p> 记录并检查操作，在每个消息中维护一个全局唯一的ID，根据全局唯一ID进行判断消息是否已经被消费。存在的问题，全局唯一ID的实现有一定的复杂度，需要确保检查消费状态、更新数据、以及更新消费状态三个操作原子性，解决方式涉及到分布式锁和分布式事务，并且对高性能、高并发也有一定的影响</p>
-</li>
+<li>安装</li>
 </ol>
+<pre><code>npm install webpack-sftp-client -D
+</code></pre>
+<ol start="2">
+<li>在 webpack.dev.js webpack.prod.js 中引入并配置</li>
+</ol>
+<pre class=" language-javascript"><code class="language-javascript"><span class="token keyword">const</span> WebpackSftpClient <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'webpack-sftp-client'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">new</span> <span class="token class-name">WebpackSftpClient</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  port<span class="token punctuation">:</span> <span class="token string">'22'</span><span class="token punctuation">,</span>
+  host<span class="token punctuation">:</span> <span class="token string">''</span><span class="token punctuation">,</span>  <span class="token comment" spellcheck="true">// 服务器ip</span>
+  username<span class="token punctuation">:</span> <span class="token string">'root'</span><span class="token punctuation">,</span> <span class="token comment" spellcheck="true">// 用户名</span>
+  password<span class="token punctuation">:</span> <span class="token string">''</span><span class="token punctuation">,</span> <span class="token comment" spellcheck="true">// 密码</span>
+  path<span class="token punctuation">:</span> <span class="token string">'./test/'</span><span class="token punctuation">,</span> <span class="token comment" spellcheck="true">// 本地路径</span>
+  remotePath<span class="token punctuation">:</span> <span class="token string">''</span><span class="token punctuation">,</span>  <span class="token comment" spellcheck="true">// 远端服务器路径</span>
+  verbose<span class="token punctuation">:</span> <span class="token boolean">true</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+</code></pre>
+<p>然后 使用 npm run prod  或者 npm run dev 打包后就会自动上线了。</p>
+<p>shell 的方式 就是通过编写 shell 脚本的形式，如下:</p>
+<pre class=" language-bash"><code class="language-bash"><span class="token shebang important">#!/bin/bash</span>
+<span class="token comment" spellcheck="true"># 服务器ip</span>
+serverIp<span class="token operator">=</span><span class="token string">""</span>
+<span class="token comment" spellcheck="true"># 服务器存放目录</span>
+dstDir<span class="token operator">=</span><span class="token string">""</span>
+
+<span class="token function">npm</span> run prod
+
+<span class="token function">zip</span> -r dist.zip dist
+<span class="token function">scp</span> dist.zip root@<span class="token variable">${serverIp}</span><span class="token keyword">:</span><span class="token variable">${dstDir}</span>
+<span class="token function">ssh</span>  root@<span class="token variable">${serverIp}</span>  <span class="token string">"cd <span class="token variable">${dstDir}</span>; unzip -o dist.zip"</span>
+</code></pre>
+<p>这种方式 需要提前使用 ssh-copy-id 打通 ssh 免密登陆，如果开发机是临时申请或 ip 变动频繁，那么每次都要配置免密登陆无疑是非常麻烦的事情，作为开发者如果是重复的事情肯定要自动化。</p>
+<p>  一般来说 临时申请的机器 密码不会频繁变更，因此可以通过输入密码的方式，但是 ssh 密码又是交互式的，这里再介绍两种工具来处理 ssh 密码输入</p>
+<ul>
+<li><p>sshpass </p>
+</li>
+<li><p>expect</p>
+<p> sshpass 使用非常简单，可以通过 -p 直接输入密码 或者 -f 指定包含密码的文本</p>
+</li>
+</ul>
+<pre class=" language-bash"><code class="language-bash">
+sshpass -p<span class="token string">'passwd'</span>  <span class="token function">ssh</span> root@serverIp
+
+<span class="token comment" spellcheck="true"># 或是</span>
+sshpass -f ~/.ssh/passwd_file  <span class="token function">ssh</span> root@serverIp
+</code></pre>
+<p>  expect 可以用来处理交互式的输入，它可以通过匹配正则的方式来发送对应规则的输入，例子如下：</p>
+<pre class=" language-bash"><code class="language-bash">
+/usr/bin/expect <span class="token operator">&lt;&lt;</span>-EOF
+<span class="token keyword">set</span> <span class="token function">timeout</span> 30
+spawn  <span class="token function">scp</span> dist.zip  root@<span class="token variable">${serverIp}</span><span class="token keyword">:</span><span class="token variable">${dstDir}</span>
+<span class="token function">expect</span>  <span class="token string">"*password:"</span>
+    send <span class="token string">"<span class="token variable">${passwd}</span>\n"</span>
+<span class="token function">expect</span> eof
+<span class="token keyword">set</span> <span class="token function">timeout</span> 300
+spawn  <span class="token function">ssh</span>  root@<span class="token variable">${serverIp}</span>  <span class="token string">"cd <span class="token variable">${dstDir}</span>; unzip -o dist.zip"</span>
+<span class="token function">expect</span>  <span class="token string">"*password:"</span>
+   send <span class="token string">"<span class="token variable">${passwd}</span>\n"</span>
+<span class="token function">expect</span> eof
+
+EOF
+</code></pre>
+<p>综合上面我们就可以完善一个发布上线的脚本：</p>
+<pre class=" language-bash"><code class="language-bash"><span class="token shebang important">#!/bin/bash</span>
+
+<span class="token comment" spellcheck="true"># 服务器密码</span>
+passwd<span class="token operator">=</span><span class="token string">""</span>
+<span class="token comment" spellcheck="true"># 服务器ip</span>
+serverIp<span class="token operator">=</span><span class="token string">""</span>
+<span class="token comment" spellcheck="true"># 服务器目标目录</span>
+dstDir<span class="token operator">=</span><span class="token string">""</span>
+
+<span class="token function">npm</span> run prod
+
+<span class="token keyword">if</span> <span class="token punctuation">[</span> <span class="token variable">$?</span> <span class="token operator">!=</span> 0 <span class="token punctuation">]</span><span class="token punctuation">;</span><span class="token keyword">then</span>
+    <span class="token keyword">echo</span> <span class="token string">"打包失败"</span>
+    <span class="token keyword">exit</span> 1
+<span class="token keyword">fi</span>
+<span class="token function">zip</span> -r dist.zip dist
+
+/usr/bin/expect <span class="token operator">&lt;&lt;</span>-EOF
+<span class="token keyword">set</span> <span class="token function">timeout</span> 30
+spawn  <span class="token function">scp</span> dist.zip  root@<span class="token variable">${serverIp}</span><span class="token keyword">:</span><span class="token variable">${dstDir}</span>
+<span class="token function">expect</span>  <span class="token string">"*password:"</span>
+    send <span class="token string">"<span class="token variable">${passwd}</span>\n"</span>
+<span class="token function">expect</span> eof
+
+<span class="token keyword">set</span> <span class="token function">timeout</span> 300
+spawn  <span class="token function">ssh</span>  root@<span class="token variable">${serverIp}</span>  <span class="token string">"cd <span class="token variable">${dstDir}</span>; unzip -o dist.zip"</span>
+<span class="token function">expect</span>  <span class="token string">"*password:"</span>
+   send <span class="token string">"<span class="token variable">${passwd}</span>\n"</span>
+<span class="token function">expect</span> eof
+
+EOF
+</code></pre>
 
                 
             </div>
@@ -561,7 +646,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://www.liubl.top/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/">https://www.liubl.top/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/</a>
+                    <a href="https://www.liubl.top/2021/01/23/vue_yi_jian_bu_shu_fa_bu_shang_xian/">https://www.liubl.top/2021/01/23/vue_yi_jian_bu_shu_fa_bu_shang_xian/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -599,8 +684,20 @@
                     
                         <div class="article-tag">
                             
-                                <a href="/tags/API/">
-                                    <span class="chip bg-color">API</span>
+                                <a href="/tags/LINUX/">
+                                    <span class="chip bg-color">LINUX</span>
+                                </a>
+                            
+                                <a href="/tags/VUE/">
+                                    <span class="chip bg-color">VUE</span>
+                                </a>
+                            
+                                <a href="/tags/%E8%84%9A%E6%9C%AC%E5%B7%A5%E5%85%B7/">
+                                    <span class="chip bg-color">脚本工具</span>
+                                </a>
+                            
+                                <a href="/tags/expect/">
+                                    <span class="chip bg-color">expect</span>
                                 </a>
                             
                         </div>
@@ -776,13 +873,13 @@
             <div class="article-badge left-badge text-color">
                 <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2021/04/10/wei_shi_me_tcp_hui_nian_bao_er_http_bu_hui/">
+                <a href="/2021/01/23/mysql_wu_shan_ku_liao_zen_me_ban/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/21.jpg" class="responsive-img" alt="为什么TCP会粘包，而HTTP不会">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="MySQL 误删库了怎么办">
                         
-                        <span class="card-title">为什么TCP会粘包，而HTTP不会</span>
+                        <span class="card-title">MySQL 误删库了怎么办</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -793,14 +890,14 @@
                     </div>
                     <div class="publish-info">
                         <span class="publish-date">
-                            <i class="far fa-clock fa-fw icon-date"></i>2021-04-10
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-01-23
                         </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/%E7%BD%91%E7%BB%9C/" class="post-category">
-                                    网络
+                            <a href="/categories/MYSQL/" class="post-category">
+                                    MYSQL
                                 </a>
                             
                             
@@ -810,16 +907,8 @@
                 
                 <div class="card-action article-tags">
                     
-                    <a href="/tags/TCP/">
-                        <span class="chip bg-color">TCP</span>
-                    </a>
-                    
-                    <a href="/tags/HTTP/">
-                        <span class="chip bg-color">HTTP</span>
-                    </a>
-                    
-                    <a href="/tags/%E7%BD%91%E7%BB%9C/">
-                        <span class="chip bg-color">网络</span>
+                    <a href="/tags/MYSQL/">
+                        <span class="chip bg-color">MYSQL</span>
                     </a>
                     
                 </div>
@@ -830,16 +919,16 @@
         
         <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge right-badge text-color">
-                下一篇&nbsp;<i class="fas fa-chevron-right"></i>
+                本篇&nbsp;<i class="far fa-dot-circle"></i>
             </div>
             <div class="card">
-                <a href="/2021/01/27/php_yuan_cheng_zhi_xing_duo_tiao_hao_shi_ming_ling/">
+                <a href="/2021/01/23/vue_yi_jian_bu_shu_fa_bu_shang_xian/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/7.jpg" class="responsive-img" alt="PHP 远程执行多条耗时命令">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/1.jpg" class="responsive-img" alt="Vue 一键部署发布上线">
                         
-                        <span class="card-title">PHP 远程执行多条耗时命令</span>
+                        <span class="card-title">Vue 一键部署发布上线</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -850,37 +939,38 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-01-27
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-01-23
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/PHP/" class="post-category">
-                                    PHP
+                            <a href="/categories/VUE/" class="post-category">
+                                    VUE
                                 </a>
                             
                             
                         </span>
                     </div>
                 </div>
+
                 
                 <div class="card-action article-tags">
-                    
-                    <a href="/tags/PHP/">
-                        <span class="chip bg-color">PHP</span>
-                    </a>
-                    
-                    <a href="/tags/SHELL/">
-                        <span class="chip bg-color">SHELL</span>
-                    </a>
                     
                     <a href="/tags/LINUX/">
                         <span class="chip bg-color">LINUX</span>
                     </a>
                     
-                    <a href="/tags/SSH/">
-                        <span class="chip bg-color">SSH</span>
+                    <a href="/tags/VUE/">
+                        <span class="chip bg-color">VUE</span>
+                    </a>
+                    
+                    <a href="/tags/%E8%84%9A%E6%9C%AC%E5%B7%A5%E5%85%B7/">
+                        <span class="chip bg-color">脚本工具</span>
+                    </a>
+                    
+                    <a href="/tags/expect/">
+                        <span class="chip bg-color">expect</span>
                     </a>
                     
                 </div>
