@@ -4,7 +4,7 @@
 
 <head>
     <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
-    <meta name="keywords" content="记一次 php 并发写入 顺序混乱的问题排查(下), 博客,技术博客">
+    <meta name="keywords" content="聊一聊接口幂等性, 博客,技术博客">
     <meta name="description" content="记录开发的日常">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>记一次 php 并发写入 顺序混乱的问题排查(下) | Liubl的博客</title>
+    <title>聊一聊接口幂等性 | Liubl的博客</title>
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/awesome/css/all.css">
@@ -317,7 +317,7 @@
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">记一次 php 并发写入 顺序混乱的问题排查(下)</h1>
+                    <h1 class="description center-align post-title">聊一聊接口幂等性</h1>
                 </div>
             </div>
         </div>
@@ -431,33 +431,12 @@
             <div class="row tag-cate">
                 <div class="col s7">
                     
-                    <div class="article-tag">
-                        
-                            <a href="/tags/PHP/">
-                                <span class="chip bg-color">PHP</span>
-                            </a>
-                        
-                            <a href="/tags/Linux/">
-                                <span class="chip bg-color">Linux</span>
-                            </a>
-                        
-                            <a href="/tags/IO/">
-                                <span class="chip bg-color">IO</span>
-                            </a>
-                        
-                    </div>
+                          <div class="article-tag">
+                            <span class="chip bg-color">无标签</span>
+                          </div>
                     
                 </div>
                 <div class="col s5 right-align">
-                    
-                    <div class="post-cate">
-                        <i class="fas fa-bookmark fa-fw icon-category"></i>
-                        
-                            <a href="/categories/PHP/" class="post-category">
-                                PHP
-                            </a>
-                        
-                    </div>
                     
                 </div>
             </div>
@@ -466,28 +445,28 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2021-04-25
+                    2021-02-08
                 </div>
                 
 
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-check fa-fw"></i>更新日期:&nbsp;&nbsp;
-                    2021-04-28
+                    2021-04-29
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
-                    902
+                    963
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
-                    4 分
+                    3 分
                 </div>
                 
 
@@ -512,123 +491,37 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>上次我们说到  PHP 写入文件超过 8k 就不是原子操作而是会分批写入，我们用 C 做了试验，然而我意识到 其实里面有个错误， fputs 并不是一个系统调用，它是由 glibc C 实现的库函数，我们必须用 linux 提供给 C 的 write 函数 来测试。</p>
-<p>我们 修改 write.c 文件 使用 write 函数</p>
-<p>file: write</p>
-<pre class=" language-c"><code class="language-c"><span class="token macro property">#<span class="token directive keyword">include</span><span class="token string">&lt;stdio.h></span></span>
-<span class="token macro property">#<span class="token directive keyword">include</span> <span class="token string">&lt;fcntl.h></span></span>
-<span class="token keyword">void</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
-<span class="token punctuation">{</span>
-    <span class="token keyword">int</span> sz<span class="token punctuation">;</span>
-    <span class="token keyword">int</span> fd <span class="token operator">=</span> <span class="token function">open</span><span class="token punctuation">(</span><span class="token string">"out.log"</span><span class="token punctuation">,</span>O_WRONLY <span class="token operator">|</span> O_CREAT <span class="token operator">|</span> O_APPEND<span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token keyword">char</span> buff<span class="token punctuation">[</span><span class="token number">30000</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
-    <span class="token keyword">int</span> i<span class="token punctuation">;</span>
-
-    <span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">;</span>i<span class="token operator">+</span><span class="token operator">=</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
-        <span class="token function">strcat</span><span class="token punctuation">(</span>buff<span class="token punctuation">,</span> <span class="token string">"abcd\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token punctuation">}</span>
-
-    sz <span class="token operator">=</span> <span class="token function">write</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> buff<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-
-    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"system call write(%d, \"buff \\n\", %d) return %d\n"</span><span class="token punctuation">,</span> fd<span class="token punctuation">,</span> <span class="token function">strlen</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">,</span> sz<span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
+                <p>回想曾经刚来北京，去某厂面试，前面聊得还不错，后面突然被问到幂等性问题，当时从二线城市出来，完全没听过这个名词有点懵，没答上来，明显感觉面试官态度有所变化。面试结束后一查才知道，平时开发过程中防止用户重复点击等场景，其实已经用到过就是不知道这个名词。</p>
+<p>幂等性其实就是多次调用接口返回值和影响结果与单次调用的返回值和影响相同。</p>
+<p>拿类似微博的系统来说，如果查看某个人的微博，查询一次和查询多次结果是一样的，并且都不会影响数据库中关于这条微博的存储结果。</p>
+<p>因此可以说，查询天生就是幂等性的， 在 <code>Restful</code> 中 即  GET 是幂等性。</p>
+<pre class=" language-bash"><code class="language-bash">GET  http://somesite.com/?id<span class="token operator">=</span>1    <span class="token comment" spellcheck="true"># 多次调用 对后端无影响</span>
 </code></pre>
-<p>编译并执行</p>
-<pre class=" language-bash"><code class="language-bash">cc write.c -o <span class="token function">write</span>
-<span class="token function">strace</span> ./write
+<p>如果作为用户，发一条微博，由于手抖或者网络波动重试而发出去了多条相同的微博，那么此时肯定不是我们想要的结果，所以新增不是幂等性的。</p>
+<pre class=" language-bash"><code class="language-bash">POST   http://somesite.com/weibo     <span class="token comment" spellcheck="true"># 多次调用会生成多条记录</span>
 </code></pre>
-<p>我们看到，这次经过了一次 系统调用</p>
-<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">..</span>.
-open<span class="token punctuation">(</span><span class="token string">"out.log"</span>, O_WRONLY<span class="token operator">|</span>O_CREAT<span class="token operator">|</span>O_APPEND, 03777767645557370<span class="token punctuation">)</span> <span class="token operator">=</span> 3
-write<span class="token punctuation">(</span>3, <span class="token string">"abcd\nabcd\nabcd\nabcd\nabcd\nabcd\nab"</span><span class="token punctuation">..</span>., 30000<span class="token punctuation">)</span> <span class="token operator">=</span> 30000
-fstat<span class="token punctuation">(</span>1, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFCHR<span class="token operator">|</span>0620, st_rdev<span class="token operator">=</span>makedev<span class="token punctuation">(</span>136, 3<span class="token punctuation">)</span>, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
-<span class="token punctuation">..</span>.
-</code></pre>
-<p>所以 之前 fputs 应该是C 库函数为写入速度做的优化。</p>
-<p>我们再次看 write 的定义</p>
-<p>man 2 write</p>
-<pre><code>BUGS         top
-       According to POSIX.1-2008/SUSv4 Section XSI 2.9.7 ("Thread
-       Interactions with Regular File Operations"):
-
-           All of the following functions shall be atomic with respect
-           to each other in the effects specified in POSIX.1-2008 when
-           they operate on regular files or symbolic links: ...
-
-       Among the APIs subsequently listed are write() and writev(2).
-       And among the effects that should be atomic across threads (and
-       processes) are updates of the file offset.  However, on Linux
-       before version 3.14, this was not the case: if two processes that
-       share an open file description (see open(2)) perform a write()
-       (or writev(2)) at the same time, then the I/O operations were not
-       atomic with respect updating the file offset, with the result
-       that the blocks of data output by the two processes might
-       (incorrectly) overlap.  This problem was fixed in Linux 3.14.   &lt;---- 看这一行
-</code></pre>
-<p>也就是说 linux 内核 3.14 之前 其实不是原子写入是存在bug，而之前测试的环境内核是 3.10.0</p>
-<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">[</span>root@liubl ~<span class="token punctuation">]</span><span class="token comment" spellcheck="true"># uname -a</span>
-Linux liubl 3.10.0-957.5.1.el7.x86_64 <span class="token comment" spellcheck="true">#1 SMP Fri Feb 1 14:54:57 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux</span>
-</code></pre>
-<p>通过查找 PHP 为什么做 超过 chunk_size 的优化 ，看到 php commit  中 php8 中已经取消了这个8192 分批写入的限制</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/5cbe5a538c92d7d515b0270625e2f705a1c02b18">https://github.com/php/php-src/commit/5cbe5a538c92d7d515b0270625e2f705a1c02b18</a></p>
-<pre><code>Don't use chunking for stream writes
-
-We're currently splitting up large writes into 8K size chunks, which
-adversely affects I/O performance in some cases. Splitting up writes
-doesn't make a lot of sense, as we already must have a backing buffer,
-so there is no memory/performance tradeoff to be made here.
-
-This change disables the write chunking at the stream layer, but
-retains the current retry loop for partial writes. In particular
-network writes will typically only write part of the data for large
-writes, so we need to keep the retry loop to preserve backwards
-compatibility.
-
-If issues due to this change turn up, chunking should be reintroduced
-at lower levels where it is needed to avoid issues for specific streams,
-rather than unnecessarily enforcing it for all streams.
-</code></pre>
-<p><img src="https://cdn.jsdelivr.net/gh/liubl1024/blog_images/image/blog/image-20210427224212749.png" alt="image-20210427224212749"></p>
-<p>因此我们可以安装 一个 php8  系统  内核 4.4  来测试</p>
-<pre><code>root@ubuntu:~/test# uname -r
-4.4.0-62-generic
-root@ubuntu:~/test# php -v
-PHP 8.0.3 (cli) (built: Mar  5 2021 07:53:39) ( NTS )
-Copyright (c) The PHP Group
-Zend Engine v4.0.3, Copyright (c) Zend Technologies
-    with Zend OPcache v8.0.3, Copyright (c), by Zend Technologies
-</code></pre>
-<p>可以看到 写入也是 只进行了一次系统调用</p>
-<p>file: chunk.php</p>
-<pre class=" language-php"><code class="language-php"><span class="token delimiter">&lt;?php</span>
-<span class="token variable">$data</span> <span class="token operator">=</span> <span class="token punctuation">[</span>
-    <span class="token string">"type"</span><span class="token operator">=</span><span class="token operator">></span><span class="token string">"report"</span><span class="token punctuation">,</span>
-    <span class="token string">"time"</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">time</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-    <span class="token string">"data"</span><span class="token operator">=</span><span class="token operator">></span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
-<span class="token punctuation">]</span><span class="token punctuation">;</span>
-
-<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">&lt;</span><span class="token number">2000</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
-    <span class="token variable">$data</span><span class="token punctuation">[</span><span class="token string">"data"</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">"abc"</span><span class="token punctuation">.</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">rand</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span><span class="token number">999</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
-
-<span class="token variable">$content</span> <span class="token operator">=</span> <span class="token function">json_encode</span><span class="token punctuation">(</span><span class="token variable">$data</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
-<span class="token keyword">echo</span> <span class="token function">strlen</span><span class="token punctuation">(</span><span class="token variable">$content</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
-
-<span class="token variable">$out</span> <span class="token operator">=</span> <span class="token string">"out.log"</span><span class="token punctuation">;</span>
-<span class="token function">file_put_contents</span><span class="token punctuation">(</span><span class="token variable">$out</span><span class="token punctuation">,</span> <span class="token variable">$content</span><span class="token punctuation">,</span> <span class="token constant">FILE_APPEND</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre>
-<pre><code>open("/root/test/out.log", O_WRONLY|O_CREAT|O_APPEND, 0666) = 3
-fstat(3, {st_mode=S_IFREG|0644, st_size=314800000, ...}) = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-write(3, "{\"type\":\"report\",\"time\":16192384"..., 30935) = 30935
-close(3)                                = 0
-close(2)                                = 0
-close(1)
-</code></pre>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>PHP 8 之前的版本 因为 file_put_contents 实现的原因，有  chunk_size 限制 所以 每次写入超过 8192，如果不加锁就存在混乱的可能，</p>
-<p>而系统 linux  3.14 内核之前也有可能不是原子的写入过长数据也有可能混乱。</p>
+<p>修改和删除也类似，加入某个用户要加经验或金币，一般不会用  update set 具体值操作，而是使用  += ，那么多次修改金币或经验数肯定对不上了。</p>
+<p>删除虽说 一般标记 状态 <code> is_del  = true</code>  的假删除  ，但是对同一 id 多次请求 <code>DELETE</code>  返回结果可能是不一样的。</p>
+<h4 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h4><p>其实解决办法基本上都能想到，就是用  token 或叫做 noceid 的字符串来标记请求，如果第一次处理成功就记录 token 和返回结果，如果处理失败就立即删除 token ，后面如果有相同 token 和参数的请求就直接返回 记录的结果。token 最好客户端生成，因为服务端很难区分是真实的需要新增或修改多条数据还是由于某些原因重复发送的数据</p>
+<p>生成 token 得注意：</p>
+<p>token 尽可能<strong>唯一</strong>， token 一般是客户端生成，因此可以利用客户端的信息元素 加时间戳等 算法来保证唯一</p>
+<p>一般来说用 redis 来存储比较合适，因为 redis 是单线程，第一个请求到来后，可以马上把 token 放到 <code>string</code> 中存储，系统开销也会较小。</p>
+<p>几个常用 设计幂等操作的方法</p>
+<ol>
+<li><p>利用数据库的唯一约束实现</p>
+<p> mysql    insert if not exist</p>
+<p> redis   setnx 代替</p>
+</li>
+<li><p>为更新的数据设置前置条件</p>
+<p> “将账户 X 的余额增加 100 元”这个操作并不满足幂等性，我们可以把这个操作加上一个前置条件，变为：“如果账户 X 当前的余额为 500 元，将余额加 100 元”，这个操作就具备了幂等性</p>
+<p> 例如更新前  查询 select   …  for update</p>
+<p> 数据增加版本号属性 </p>
+</li>
+<li><p>记录并检查操作</p>
+<p> 也称为“Token 机制或者 GUID（全局唯一 ID）机制”，实现的思路特别简单：在执行数据更新操作之前，先检查一下是否执行过这个更新操作</p>
+<p> 记录并检查操作，在每个消息中维护一个全局唯一的ID，根据全局唯一ID进行判断消息是否已经被消费。存在的问题，全局唯一ID的实现有一定的复杂度，需要确保检查消费状态、更新数据、以及更新消费状态三个操作原子性，解决方式涉及到分布式锁和分布式事务，并且对高性能、高并发也有一定的影响</p>
+</li>
+</ol>
 
                 
             </div>
@@ -655,7 +548,7 @@ close(1)
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://www.liubl.top/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/">https://www.liubl.top/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/</a>
+                    <a href="https://www.liubl.top/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/">https://www.liubl.top/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -692,19 +585,7 @@ close(1)
                 <div class="post-meta__tag-list" style="display: inline-block;">
                     
                         <div class="article-tag">
-                            
-                                <a href="/tags/PHP/">
-                                    <span class="chip bg-color">PHP</span>
-                                </a>
-                            
-                                <a href="/tags/Linux/">
-                                    <span class="chip bg-color">Linux</span>
-                                </a>
-                            
-                                <a href="/tags/IO/">
-                                    <span class="chip bg-color">IO</span>
-                                </a>
-                            
+                            <span class="chip bg-color">无标签</span>
                         </div>
                     
                 </div>
@@ -874,18 +755,17 @@ close(1)
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/">
+                <a href="/2021/04/23/php_file_put_contents_bing_fa_xie_ru_shang/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(下)">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/15.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(上)">
                         
-                        <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(下)</span>
+                        <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(上)</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -895,9 +775,9 @@ close(1)
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-25
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-04-23
+                        </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
@@ -910,7 +790,6 @@ close(1)
                         </span>
                     </div>
                 </div>
-
                 
                 <div class="card-action article-tags">
                     
@@ -934,16 +813,16 @@ close(1)
         
         <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge right-badge text-color">
-                下一篇&nbsp;<i class="fas fa-chevron-right"></i>
+                本篇&nbsp;<i class="far fa-dot-circle"></i>
             </div>
             <div class="card">
-                <a href="/2021/04/23/php_file_put_contents_bing_fa_xie_ru_shang/">
+                <a href="/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/15.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(上)">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="聊一聊接口幂等性">
                         
-                        <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(上)</span>
+                        <span class="card-title">聊一聊接口幂等性</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -954,36 +833,17 @@ close(1)
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-23
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-02-08
                             </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-bookmark fa-fw icon-category"></i>
-                            
-                            <a href="/categories/PHP/" class="post-category">
-                                    PHP
-                                </a>
-                            
+                            <i class="fas fa-user fa-fw"></i>
+                            Liubl
                             
                         </span>
                     </div>
                 </div>
-                
-                <div class="card-action article-tags">
-                    
-                    <a href="/tags/PHP/">
-                        <span class="chip bg-color">PHP</span>
-                    </a>
-                    
-                    <a href="/tags/Linux/">
-                        <span class="chip bg-color">Linux</span>
-                    </a>
-                    
-                    <a href="/tags/IO/">
-                        <span class="chip bg-color">IO</span>
-                    </a>
-                    
-                </div>
+
                 
             </div>
         </div>
