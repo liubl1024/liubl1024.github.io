@@ -4,7 +4,7 @@
 
 <head>
     <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
-    <meta name="keywords" content="记一次 php 并发写入 顺序混乱的问题排查(下), 博客,技术博客">
+    <meta name="keywords" content="MySQL 误删库了怎么办, 博客,技术博客">
     <meta name="description" content="记录开发的日常">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>记一次 php 并发写入 顺序混乱的问题排查(下) | Liubl的博客</title>
+    <title>MySQL 误删库了怎么办 | Liubl的博客</title>
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/awesome/css/all.css">
@@ -317,7 +317,7 @@
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">记一次 php 并发写入 顺序混乱的问题排查(下)</h1>
+                    <h1 class="description center-align post-title">MySQL 误删库了怎么办</h1>
                 </div>
             </div>
         </div>
@@ -431,33 +431,12 @@
             <div class="row tag-cate">
                 <div class="col s7">
                     
-                    <div class="article-tag">
-                        
-                            <a href="/tags/PHP/">
-                                <span class="chip bg-color">PHP</span>
-                            </a>
-                        
-                            <a href="/tags/Linux/">
-                                <span class="chip bg-color">Linux</span>
-                            </a>
-                        
-                            <a href="/tags/IO/">
-                                <span class="chip bg-color">IO</span>
-                            </a>
-                        
-                    </div>
+                          <div class="article-tag">
+                            <span class="chip bg-color">无标签</span>
+                          </div>
                     
                 </div>
                 <div class="col s5 right-align">
-                    
-                    <div class="post-cate">
-                        <i class="fas fa-bookmark fa-fw icon-category"></i>
-                        
-                            <a href="/categories/PHP/" class="post-category">
-                                PHP
-                            </a>
-                        
-                    </div>
                     
                 </div>
             </div>
@@ -466,28 +445,28 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2021-04-25
+                    2021-01-23
                 </div>
                 
 
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-check fa-fw"></i>更新日期:&nbsp;&nbsp;
-                    2021-04-28
+                    2021-04-30
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
-                    902
+                    817
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
-                    4 分
+                    3 分
                 </div>
                 
 
@@ -512,123 +491,66 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>上次我们说到  PHP 写入文件超过 8k 就不是原子操作而是会分批写入，我们用 C 做了试验，然而我意识到 其实里面有个错误， fputs 并不是一个系统调用，它是由 glibc C 实现的库函数，我们必须用 linux 提供给 C 的 write 函数 来测试。</p>
-<p>我们 修改 write.c 文件 使用 write 函数</p>
-<p>file: write</p>
-<pre class=" language-c"><code class="language-c"><span class="token macro property">#<span class="token directive keyword">include</span><span class="token string">&lt;stdio.h></span></span>
-<span class="token macro property">#<span class="token directive keyword">include</span> <span class="token string">&lt;fcntl.h></span></span>
-<span class="token keyword">void</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
-<span class="token punctuation">{</span>
-    <span class="token keyword">int</span> sz<span class="token punctuation">;</span>
-    <span class="token keyword">int</span> fd <span class="token operator">=</span> <span class="token function">open</span><span class="token punctuation">(</span><span class="token string">"out.log"</span><span class="token punctuation">,</span>O_WRONLY <span class="token operator">|</span> O_CREAT <span class="token operator">|</span> O_APPEND<span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token keyword">char</span> buff<span class="token punctuation">[</span><span class="token number">30000</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
-    <span class="token keyword">int</span> i<span class="token punctuation">;</span>
-
-    <span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">;</span>i<span class="token operator">+</span><span class="token operator">=</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
-        <span class="token function">strcat</span><span class="token punctuation">(</span>buff<span class="token punctuation">,</span> <span class="token string">"abcd\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token punctuation">}</span>
-
-    sz <span class="token operator">=</span> <span class="token function">write</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> buff<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-
-    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"system call write(%d, \"buff \\n\", %d) return %d\n"</span><span class="token punctuation">,</span> fd<span class="token punctuation">,</span> <span class="token function">strlen</span><span class="token punctuation">(</span>buff<span class="token punctuation">)</span><span class="token punctuation">,</span> sz<span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
+                <blockquote>
+<p>MySQL 由于没加条件更新了全表数据，或者误删库后只能跑路吗？显然不是的，本文简单谈谈MySQL 的备份、恢复策略。</p>
+</blockquote>
+<h4 id="一般情况下MySQL-的备份分为以下几种："><a href="#一般情况下MySQL-的备份分为以下几种：" class="headerlink" title="一般情况下MySQL 的备份分为以下几种："></a>一般情况下MySQL 的备份分为以下几种：</h4><ul>
+<li><p>逻辑备份</p>
+</li>
+<li><p>物理备份</p>
+</li>
+<li><p>lvm 快照备份</p>
+</li>
+<li><p>主从备份</p>
+</li>
+</ul>
+<p> 逻辑备份就是 用mysqldump 工具定期导出sql，这种方式的优点是灵活、文本储存，有许多参数可供选择并且可直接查看数据信息。缺点是备份时间较长，备份时占用服务器资源较大，因此推荐在系统不繁忙时备份。</p>
+<p>物理备份是直接打包 数据库的 data 目录 文件，优点是快，缺点是备份的数据易损坏，备份时需要给加锁，防止新数据写入。</p>
+<p>lvm 是 linux 直接复制磁盘快照的方式备份 MySQL。</p>
+<p>主从备份是通过 设置 MySQL 主从延迟时间的方式达到备份的目的，在主库误操作之后，只要误操作还没同步到从库，就可以通过 stop slave 的方式，停止从库的复制，这时只需要把库切换为从库就达到恢复的目的。</p>
+<p>有备份当然可以恢复，如果没有备份策略 可以通过 mysqlbinlog 来恢复，mysqlbinlog  需要 开启 binlog 参数</p>
+<pre class=" language-ini"><code class="language-ini"><span class="token selector">[mysqld]</span>
+# binlog 日志路径配置
+<span class="token constant">log-bin</span> <span class="token attr-value"><span class="token punctuation">=</span> /etc/mysql/logs/mysql-bin.log</span>
+# binlog 有效期
+<span class="token constant">expire-logs-days</span> <span class="token attr-value"><span class="token punctuation">=</span> 14</span>
+# 单文件最大大小
+<span class="token constant">max-binlog-size</span> <span class="token attr-value"><span class="token punctuation">=</span> 500M </span>
+<span class="token constant">server-id</span> <span class="token attr-value"><span class="token punctuation">=</span> 1 </span>
 </code></pre>
-<p>编译并执行</p>
-<pre class=" language-bash"><code class="language-bash">cc write.c -o <span class="token function">write</span>
-<span class="token function">strace</span> ./write
+<p> MySQL 的binlog 文件  可以通过以下命令来查看</p>
+<pre class=" language-bash"><code class="language-bash">mysqlbinlog --no-defaults  -v -v  --base64-output<span class="token operator">=</span>DECODE-ROWS  mysql-bin.000001
 </code></pre>
-<p>我们看到，这次经过了一次 系统调用</p>
-<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">..</span>.
-open<span class="token punctuation">(</span><span class="token string">"out.log"</span>, O_WRONLY<span class="token operator">|</span>O_CREAT<span class="token operator">|</span>O_APPEND, 03777767645557370<span class="token punctuation">)</span> <span class="token operator">=</span> 3
-write<span class="token punctuation">(</span>3, <span class="token string">"abcd\nabcd\nabcd\nabcd\nabcd\nabcd\nab"</span><span class="token punctuation">..</span>., 30000<span class="token punctuation">)</span> <span class="token operator">=</span> 30000
-fstat<span class="token punctuation">(</span>1, <span class="token punctuation">{</span>st_mode<span class="token operator">=</span>S_IFCHR<span class="token operator">|</span>0620, st_rdev<span class="token operator">=</span>makedev<span class="token punctuation">(</span>136, 3<span class="token punctuation">)</span>, <span class="token punctuation">..</span>.<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=</span> 0
-<span class="token punctuation">..</span>.
+<p>mysql-bin.000001 为当前要查看的binlog文件，也可以添加 -d 参数查看指定的库的binlog </p>
+<p>binlog 文件中有 at  1089695  及日志的记录点，和时间 #210109 14:57:42 如下：</p>
+<pre class=" language-bash"><code class="language-bash">BEGIN
+/*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true"># at 1089695</span>
+<span class="token comment" spellcheck="true"># at 1089904</span>
+<span class="token comment" spellcheck="true">#210109 14:57:42 server id 1  end_log_pos 1089935 CRC32 0x3d0263c0   Xid = 17531684</span>
+COMMIT/*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true"># at 1089935</span>
+<span class="token comment" spellcheck="true">#210109 14:57:42 server id 1  end_log_pos 1090000 CRC32 0x8be6bcd5   Anonymous_GTID  last_committed=1844  sequence_number=1845  rbr_only=no  original_committed_timestamp=0  immediate_commit_timestamp=0  transaction_length=0</span>
+<span class="token comment" spellcheck="true"># original_commit_timestamp=0 (1970-01-01 08:00:00.000000 CST)</span>
+<span class="token comment" spellcheck="true"># immediate_commit_timestamp=0 (1970-01-01 08:00:00.000000 CST)</span>
+/*<span class="token operator">!</span>80001 SET @@session.original_commit_timestamp<span class="token operator">=</span>0*//*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+/*<span class="token operator">!</span>80014 SET @@session.original_server_version<span class="token operator">=</span>0*//*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+/*<span class="token operator">!</span>80014 SET @@session.immediate_server_version<span class="token operator">=</span>0*//*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+SET @@SESSION.GTID_NEXT<span class="token operator">=</span> <span class="token string">'ANONYMOUS'</span>/*<span class="token operator">!</span>*/<span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true"># at 1090000</span>
+<span class="token comment" spellcheck="true">#210109 14:57:42 server id 1  end_log_pos 1090083 CRC32 0xb6986227   Query  thread_id=435893  exec_time=0  error_code=0</span>
 </code></pre>
-<p>所以 之前 fputs 应该是C 库函数为写入速度做的优化。</p>
-<p>我们再次看 write 的定义</p>
-<p>man 2 write</p>
-<pre><code>BUGS         top
-       According to POSIX.1-2008/SUSv4 Section XSI 2.9.7 ("Thread
-       Interactions with Regular File Operations"):
-
-           All of the following functions shall be atomic with respect
-           to each other in the effects specified in POSIX.1-2008 when
-           they operate on regular files or symbolic links: ...
-
-       Among the APIs subsequently listed are write() and writev(2).
-       And among the effects that should be atomic across threads (and
-       processes) are updates of the file offset.  However, on Linux
-       before version 3.14, this was not the case: if two processes that
-       share an open file description (see open(2)) perform a write()
-       (or writev(2)) at the same time, then the I/O operations were not
-       atomic with respect updating the file offset, with the result
-       that the blocks of data output by the two processes might
-       (incorrectly) overlap.  This problem was fixed in Linux 3.14.   &lt;---- 看这一行
+<p>MySQL 可以通过 指定 –start-datetime    –stop-datetime  来恢复指定时间点的数据，或者 –start-position     –stop-position 恢复指定位置的数据。</p>
+<p>一般运维所说 数据库可以恢复到 一周内任意一个时间点的数据，即数据库按周逻辑备份，和 binlog 结合的方式。</p>
+<p>还有一些闪回工具，例如美团开源的 MyFlash 就是基于 binlog 的反向操作，即 insert 一条数据，反向操作就是 delete 。</p>
+<p>另外 一定要做好MySQL 的安全管理，例如权限分配，普通登录用户不开删库的权限，MySQL 还有一个 sql_safe_updates 参数，可以有效限制不带 where 条件的 delete 和 update 语句是无法执行的，MySQL 一定要加这个参数来保证安全，如果开发中有需求要删除整张表，可以通过以下流程删除：</p>
+<h1 id="先备份表"><a href="#先备份表" class="headerlink" title="先备份表"></a>先备份表</h1><pre><code>create table table_bak like drop_table；
+insert into table_bak select * from drop_table；
 </code></pre>
-<p>也就是说 linux 内核 3.14 之前 其实不是原子写入是存在bug，而之前测试的环境内核是 3.10.0</p>
-<pre class=" language-bash"><code class="language-bash"><span class="token punctuation">[</span>root@liubl ~<span class="token punctuation">]</span><span class="token comment" spellcheck="true"># uname -a</span>
-Linux liubl 3.10.0-957.5.1.el7.x86_64 <span class="token comment" spellcheck="true">#1 SMP Fri Feb 1 14:54:57 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux</span>
+<h1 id="临时关闭-sql-safe-并删除"><a href="#临时关闭-sql-safe-并删除" class="headerlink" title="临时关闭 sql_safe 并删除"></a>临时关闭 sql_safe 并删除</h1><pre><code>set session sql_safe_updates=0;
+drop table drop_table;
+set session sql_safe_updates=1;
 </code></pre>
-<p>通过查找 PHP 为什么做 超过 chunk_size 的优化 ，看到 php commit  中 php8 中已经取消了这个8192 分批写入的限制</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/5cbe5a538c92d7d515b0270625e2f705a1c02b18">https://github.com/php/php-src/commit/5cbe5a538c92d7d515b0270625e2f705a1c02b18</a></p>
-<pre><code>Don't use chunking for stream writes
-
-We're currently splitting up large writes into 8K size chunks, which
-adversely affects I/O performance in some cases. Splitting up writes
-doesn't make a lot of sense, as we already must have a backing buffer,
-so there is no memory/performance tradeoff to be made here.
-
-This change disables the write chunking at the stream layer, but
-retains the current retry loop for partial writes. In particular
-network writes will typically only write part of the data for large
-writes, so we need to keep the retry loop to preserve backwards
-compatibility.
-
-If issues due to this change turn up, chunking should be reintroduced
-at lower levels where it is needed to avoid issues for specific streams,
-rather than unnecessarily enforcing it for all streams.
-</code></pre>
-<p><img src="https://cdn.jsdelivr.net/gh/liubl1024/blog_images/image/blog/image-20210427224212749.png" alt="image-20210427224212749"></p>
-<p>因此我们可以安装 一个 php8  系统  内核 4.4  来测试</p>
-<pre><code>root@ubuntu:~/test# uname -r
-4.4.0-62-generic
-root@ubuntu:~/test# php -v
-PHP 8.0.3 (cli) (built: Mar  5 2021 07:53:39) ( NTS )
-Copyright (c) The PHP Group
-Zend Engine v4.0.3, Copyright (c) Zend Technologies
-    with Zend OPcache v8.0.3, Copyright (c), by Zend Technologies
-</code></pre>
-<p>可以看到 写入也是 只进行了一次系统调用</p>
-<p>file: chunk.php</p>
-<pre class=" language-php"><code class="language-php"><span class="token delimiter">&lt;?php</span>
-<span class="token variable">$data</span> <span class="token operator">=</span> <span class="token punctuation">[</span>
-    <span class="token string">"type"</span><span class="token operator">=</span><span class="token operator">></span><span class="token string">"report"</span><span class="token punctuation">,</span>
-    <span class="token string">"time"</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">time</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-    <span class="token string">"data"</span><span class="token operator">=</span><span class="token operator">></span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
-<span class="token punctuation">]</span><span class="token punctuation">;</span>
-
-<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">&lt;</span><span class="token number">2000</span><span class="token punctuation">;</span><span class="token variable">$i</span><span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
-    <span class="token variable">$data</span><span class="token punctuation">[</span><span class="token string">"data"</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">"abc"</span><span class="token punctuation">.</span><span class="token variable">$i</span><span class="token operator">=</span><span class="token operator">></span><span class="token function">rand</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span><span class="token number">999</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
-
-<span class="token variable">$content</span> <span class="token operator">=</span> <span class="token function">json_encode</span><span class="token punctuation">(</span><span class="token variable">$data</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
-<span class="token keyword">echo</span> <span class="token function">strlen</span><span class="token punctuation">(</span><span class="token variable">$content</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">PHP_EOL</span><span class="token punctuation">;</span>
-
-<span class="token variable">$out</span> <span class="token operator">=</span> <span class="token string">"out.log"</span><span class="token punctuation">;</span>
-<span class="token function">file_put_contents</span><span class="token punctuation">(</span><span class="token variable">$out</span><span class="token punctuation">,</span> <span class="token variable">$content</span><span class="token punctuation">,</span> <span class="token constant">FILE_APPEND</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre>
-<pre><code>open("/root/test/out.log", O_WRONLY|O_CREAT|O_APPEND, 0666) = 3
-fstat(3, {st_mode=S_IFREG|0644, st_size=314800000, ...}) = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-lseek(3, 0, SEEK_CUR)                   = 0
-write(3, "{\"type\":\"report\",\"time\":16192384"..., 30935) = 30935
-close(3)                                = 0
-close(2)                                = 0
-close(1)
-</code></pre>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>PHP 8 之前的版本 因为 file_put_contents 实现的原因，有  chunk_size 限制 所以 每次写入超过 8192，如果不加锁就存在混乱的可能，</p>
-<p>而系统 linux  3.14 内核之前也有可能不是原子的写入过长数据也有可能混乱。</p>
 
                 
             </div>
@@ -655,7 +577,7 @@ close(1)
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://www.liubl.top/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/">https://www.liubl.top/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/</a>
+                    <a href="https://www.liubl.top/2021/01/23/mysql_wu_shan_ku_liao_zen_me_ban/">https://www.liubl.top/2021/01/23/mysql_wu_shan_ku_liao_zen_me_ban/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -692,19 +614,7 @@ close(1)
                 <div class="post-meta__tag-list" style="display: inline-block;">
                     
                         <div class="article-tag">
-                            
-                                <a href="/tags/PHP/">
-                                    <span class="chip bg-color">PHP</span>
-                                </a>
-                            
-                                <a href="/tags/Linux/">
-                                    <span class="chip bg-color">Linux</span>
-                                </a>
-                            
-                                <a href="/tags/IO/">
-                                    <span class="chip bg-color">IO</span>
-                                </a>
-                            
+                            <span class="chip bg-color">无标签</span>
                         </div>
                     
                 </div>
@@ -874,18 +784,17 @@ close(1)
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/">
+                <a href="/2021/02/08/liao_yi_liao_jie_kou_mi_deng_xing/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(下)">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="聊一聊接口幂等性">
                         
-                        <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(下)</span>
+                        <span class="card-title">聊一聊接口幂等性</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -895,35 +804,26 @@ close(1)
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-25
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-02-08
+                        </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/PHP/" class="post-category">
-                                    PHP
+                            <a href="/categories/API/" class="post-category">
+                                    API
                                 </a>
                             
                             
                         </span>
                     </div>
                 </div>
-
                 
                 <div class="card-action article-tags">
                     
-                    <a href="/tags/PHP/">
-                        <span class="chip bg-color">PHP</span>
-                    </a>
-                    
-                    <a href="/tags/Linux/">
-                        <span class="chip bg-color">Linux</span>
-                    </a>
-                    
-                    <a href="/tags/IO/">
-                        <span class="chip bg-color">IO</span>
+                    <a href="/tags/API/">
+                        <span class="chip bg-color">API</span>
                     </a>
                     
                 </div>
@@ -934,16 +834,16 @@ close(1)
         
         <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge right-badge text-color">
-                下一篇&nbsp;<i class="fas fa-chevron-right"></i>
+                本篇&nbsp;<i class="far fa-dot-circle"></i>
             </div>
             <div class="card">
-                <a href="/2021/04/23/php_file_put_contents_bing_fa_xie_ru_shang/">
+                <a href="/2021/01/23/mysql_wu_shan_ku_liao_zen_me_ban/">
                     <div class="card-image">
                         
                         
-                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/15.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(上)">
+                        <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="MySQL 误删库了怎么办">
                         
-                        <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(上)</span>
+                        <span class="card-title">MySQL 误删库了怎么办</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -954,36 +854,17 @@ close(1)
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-23
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-01-23
                             </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-bookmark fa-fw icon-category"></i>
-                            
-                            <a href="/categories/PHP/" class="post-category">
-                                    PHP
-                                </a>
-                            
+                            <i class="fas fa-user fa-fw"></i>
+                            Liubl
                             
                         </span>
                     </div>
                 </div>
-                
-                <div class="card-action article-tags">
-                    
-                    <a href="/tags/PHP/">
-                        <span class="chip bg-color">PHP</span>
-                    </a>
-                    
-                    <a href="/tags/Linux/">
-                        <span class="chip bg-color">Linux</span>
-                    </a>
-                    
-                    <a href="/tags/IO/">
-                        <span class="chip bg-color">IO</span>
-                    </a>
-                    
-                </div>
+
                 
             </div>
         </div>
