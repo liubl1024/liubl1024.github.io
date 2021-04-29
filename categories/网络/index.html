@@ -4,7 +4,7 @@
 
 <head>
     <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
-    <meta name="keywords" content="分类: PHP, 博客,技术博客">
+    <meta name="keywords" content="分类: 网络, 博客,技术博客">
     <meta name="description" content="记录开发的日常">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>分类: PHP | Liubl的博客</title>
+    <title>分类: 网络 | Liubl的博客</title>
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/libs/awesome/css/all.css">
@@ -372,7 +372,7 @@
                 
                 <a href="/categories/PHP/" title="PHP: 2">
                     <span class="chip center-align waves-effect waves-light
-                             chip-active "
+                             chip-default "
                             style="background-color: #F9EBEA;">PHP
                         <span class="tag-length">2</span>
                     </span>
@@ -390,7 +390,7 @@
                 
                 <a href="/categories/%E7%BD%91%E7%BB%9C/" title="网络: 1">
                     <span class="chip center-align waves-effect waves-light
-                             chip-default "
+                             chip-active "
                             style="background-color: #D5F5E3;">网络
                         <span class="tag-length">1</span>
                     </span>
@@ -410,31 +410,35 @@
             
             <div class="article tag-post col s12 m6 l4" data-aos="zoom-in">
                 <div class="card">
-                    <a href="/2021/04/25/php_file_put_contents_bing_fa_xie_ru_xia/">
+                    <a href="/2021/04/10/wei_shi_me_tcp_hui_nian_bao_er_http_bu_hui/">
                         <div class="card-image tag-image">
                             
                             
-                            <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/22.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(下)">
+                            <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/21.jpg" class="responsive-img" alt="为什么TCP会粘包，而HTTP不会">
                             
-                            <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(下)</span>
+                            <span class="card-title">为什么TCP会粘包，而HTTP不会</span>
                         </div>
                     </a>
                     <div class="card-content article-content">
                         <div class="summary block-with-text">
                             
-                                上次我们说到  PHP 写入文件超过 8k 就不是原子操作而是会分批写入，我们用 C 做了试验，然而我意识到 其实里面有个错误， fputs 并不是一个系统调用，它是由 glibc C 实现的库函数，我们必须用 linux 提供给 C 的 
+                                为什么TCP 会粘包，而HTTP 不会什么是粘包​      粘包是在 客户端和服务端收发数据过程中，发生数据包粘连在一块无法区分，下面来看个例子
+TCP 服务端使用 PHP 监听 8000 端口
+&lt;?php
+
+$ip = "127.
                             
                         </div>
                         <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-25
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-10
                             </span>
                             <span class="publish-author">
                                 
                                 <i class="fas fa-bookmark fa-fw icon-category"></i>
                                 
-                                <a href="/categories/PHP/" class="post-category">
-                                    PHP
+                                <a href="/categories/%E7%BD%91%E7%BB%9C/" class="post-category">
+                                    网络
                                 </a>
                                 
                                 
@@ -445,74 +449,16 @@
                     
                     <div class="card-action article-tags">
                         
-                        <a href="/tags/PHP/">
-                            <span class="chip bg-color">PHP</span>
+                        <a href="/tags/TCP/">
+                            <span class="chip bg-color">TCP</span>
                         </a>
                         
-                        <a href="/tags/Linux/">
-                            <span class="chip bg-color">Linux</span>
+                        <a href="/tags/HTTP/">
+                            <span class="chip bg-color">HTTP</span>
                         </a>
                         
-                        <a href="/tags/IO/">
-                            <span class="chip bg-color">IO</span>
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-            </div>
-            
-            <div class="article tag-post col s12 m6 l4" data-aos="zoom-in">
-                <div class="card">
-                    <a href="/2021/04/23/php_file_put_contents_bing_fa_xie_ru_shang/">
-                        <div class="card-image tag-image">
-                            
-                            
-                            <img src="https://cdn.jsdelivr.net/gh/liubl1024/liubl1024.github.io/medias/featureimages/15.jpg" class="responsive-img" alt="记一次 php 并发写入 顺序混乱的问题排查(上)">
-                            
-                            <span class="card-title">记一次 php 并发写入 顺序混乱的问题排查(上)</span>
-                        </div>
-                    </a>
-                    <div class="card-content article-content">
-                        <div class="summary block-with-text">
-                            
-                                
-记一次 php  file_put_contents 并发写入  顺序混乱的问题排查
-
-起因事情是这样的，本来用 spark 跑采集的客户端日志，结果报错如下:
-WARN [main] DataSource: Found duplicat
-                            
-                        </div>
-                        <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-23
-                            </span>
-                            <span class="publish-author">
-                                
-                                <i class="fas fa-bookmark fa-fw icon-category"></i>
-                                
-                                <a href="/categories/PHP/" class="post-category">
-                                    PHP
-                                </a>
-                                
-                                
-                            </span>
-                        </div>
-                    </div>
-
-                    
-                    <div class="card-action article-tags">
-                        
-                        <a href="/tags/PHP/">
-                            <span class="chip bg-color">PHP</span>
-                        </a>
-                        
-                        <a href="/tags/Linux/">
-                            <span class="chip bg-color">Linux</span>
-                        </a>
-                        
-                        <a href="/tags/IO/">
-                            <span class="chip bg-color">IO</span>
+                        <a href="/tags/%E7%BD%91%E7%BB%9C/">
+                            <span class="chip bg-color">网络</span>
                         </a>
                         
                     </div>
