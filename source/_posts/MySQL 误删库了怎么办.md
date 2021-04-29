@@ -2,6 +2,9 @@
 title: MySQL 误删库了怎么办
 date: 2021-01-23 20:00:26
 tags:
+  - MYSQL
+categories:
+  - MYSQL
 ---
  > MySQL 由于没加条件更新了全表数据，或者误删库后只能跑路吗？显然不是的，本文简单谈谈MySQL 的备份、恢复策略。
 
